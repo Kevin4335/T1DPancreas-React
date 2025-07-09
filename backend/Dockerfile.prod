@@ -1,0 +1,32 @@
+# --- Stage 1: Build the frontend ---
+FROM node:18 AS frontend-builder
+
+WORKDIR /app/frontend
+COPY frontend/package*.json ./
+RUN npm install
+COPY frontend/ ./
+RUN npm run build
+
+# --- Stage 2: Build the backend ---
+FROM python:3.10-slim
+
+WORKDIR /app
+
+# Set environment mode for backend
+ENV ENV_MODE=production
+
+# Install Python dependencies
+COPY backend/requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy backend code
+COPY backend/ ./
+
+# Copy built React frontend into the backend's expected static location
+COPY --from=frontend-builder /app/frontend/build ./build
+
+# Optional: document exposed port (e.g. 80 or whatever you use)
+EXPOSE 80
+
+# Launch the backend server
+CMD ["python", "server.py"]

@@ -13,11 +13,10 @@ from random import randint
 from _thread import start_new_thread
 from datetime import datetime, timezone
 from ai import process_ai_chat
+import os
 
 
-IS_SERVER = False
-# IS_SERVER = True
-
+IS_SERVER = os.getenv('IS_SERVER', 'false').lower() == 'true'
 
 NO_CACHE = 100000001
 CACHE_ALL = 100000002
@@ -33,11 +32,49 @@ USE_BUILT = False
 
 registered = []
 
-csses = os.listdir('./css')
-jses = os.listdir('./js')
-if USE_BUILT:
-    jses = os.listdir('./js-build')
-imgs = os.listdir('./imgs')
+ENV_MODE = os.environ.get("ENV_MODE", "development")
+
+print(ENV_MODE)
+if ENV_MODE == "production":
+    # Base path to React build folder
+    BUILD_DIR = os.path.join(os.path.dirname(__file__), 'build')
+
+    # Paths to asset subdirectories
+    JS_DIR = os.path.join(BUILD_DIR, 'static', 'js')
+    IMG_DIR = os.path.join(BUILD_DIR, 'imgs')
+
+    # List asset files from React build
+    jses = os.listdir(JS_DIR) if os.path.isdir(JS_DIR) else []
+    imgs = os.listdir(IMG_DIR) if os.path.isdir(IMG_DIR) else []
+
+
+    # Base directory where React build output lives
+    BUILD_ROOT = os.path.join(os.path.dirname(__file__), 'build')
+
+    def access_file(path: str, bin: bool):
+        # Normalize and join with build path
+        relative_path = path.lstrip('/')  # e.g. 'static/js/main.js'
+        full_path = os.path.join(BUILD_ROOT, relative_path)
+
+        if CACHE_MODE == CACHE_ALL and full_path in cached_files:
+            data = cached_files[full_path]
+        else:
+            with open(full_path, 'rb') as f:
+                data = f.read()
+            if CACHE_MODE == CACHE_ALL:
+                cached_files[full_path] = data
+
+        return data if bin else data.decode('utf-8')
+
+    # Register frontend static paths
+    for js in jses:
+        if js.endswith('.js'):
+            registered.append(f'/static/js/{js}')
+
+    for img in imgs:
+        if img.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
+            registered.append(f'/imgs/{img}')
+
 
 
 cached_files = {}
@@ -106,44 +143,16 @@ SITEMAP = '''
 SITEMAP = SITEMAP.replace('$lastmod-date$', datetime.now(timezone.utc).strftime('%Y-%m-%d'))[1:]
 
 
-def access_file(path: str, bin: bool):
-    if (CACHE_MODE == CACHE_ALL and path in cached_files):
-        data = cached_files[path]
-    else:
-        with open(path.replace('/js/', '/js-build/') if USE_BUILT else path, 'rb') as f:
-            data = f.read()
-        if (CACHE_MODE == CACHE_ALL):
-            cached_files[path] = data
-    if (bin):
-        return data
-    return data.decode('utf-8')
-
-for css in csses:
-    if (not css.endswith('.css')):
-        continue
-    registered.append(f'/css/{css}')
-
-for js in jses:
-    if (not js.endswith('.js')):
-        continue
-    registered.append(f'/js/{js}')
-
-for img in imgs:
-    tmp = img.lower()
-    if (not tmp.endswith('.png') and not tmp.endswith('.jpg') and not tmp.endswith('.jpeg')  and not tmp.endswith('.gif')):
-        continue
-    registered.append(f'/imgs/{img}')
-
 
 class Request(BaseHTTPRequestHandler):
     def do_GET(self) -> None:
         path = self.path
         if (path == '/'):
-            path = '/html/home.html'
+            path = '/html/index.html'
         if (path == '/index.html'):
-            path = '/html/home.html'
+            path = '/html/index.html'
         if (path.startswith('/html/')):
-            return self.process_html(path)
+            return self.process_html('/index.html')
         if (path.startswith('/imgs/')):
             return self.process_img(path)
         if (path.startswith('/api/')):
@@ -177,6 +186,7 @@ class Request(BaseHTTPRequestHandler):
         self.send_header('Connection', 'keep-alive')
         self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
         self.send_header('Content-Length', 0)
         self.end_headers()
         self.wfile.write(b'')
@@ -206,43 +216,48 @@ class Request(BaseHTTPRequestHandler):
         return
     
     def process_html(self, path: str) -> None:
-        if (path.find('..') >= 0):
+        if '..' in path:
             return self.process_404(attack=True)
-        # print(path)
-        path = '.' + path
+
         try:
-            html = access_file(path, False)
+            html = access_file(path, False)  # no prepending './'
         except:
             return self.process_404()
-        if (IS_SERVER):
+
+        if IS_SERVER:
             html = html.replace('<!--$jtc.unique.replacer$', '')
             html = html.replace('$jtc.unique.replacer$-->', '')
+
         for reg in registered:
-            if (html.find(reg) == -1):
+            if reg not in html:
                 continue
-            file = access_file('.' + reg, True)
+            try:
+                file = access_file(reg, True)  # also drop prepended dot
+            except:
+                continue  # silently skip if file not found
             file = binToBase64(file)
-            if (reg.endswith('.css')):
+            if reg.endswith('.css'):
                 html = html.replace(reg, f'data:text/css;base64,{file}')
-            if (reg.endswith('.js')):
+            elif reg.endswith('.js'):
                 html = html.replace(reg, f'data:application/javascript;base64,{file}')
-            if (reg.endswith('.png')):
+            elif reg.endswith('.png'):
                 html = html.replace(reg, f'data:image/png;base64,{file}')
-            if (reg.endswith('.jpg') or reg.endswith('.jpeg')):
+            elif reg.endswith(('.jpg', '.jpeg')):
                 html = html.replace(reg, f'data:image/jpeg;base64,{file}')
-            if (reg.endswith('.gif')):
+            elif reg.endswith('.gif'):
                 html = html.replace(reg, f'data:image/gif;base64,{file}')
+
         html = html.encode('utf-8')
         self.send_response(200)
         self.send_header('Connection', 'keep-alive')
         self.send_header('Content-Type', 'text/html')
         self.send_header('Content-Length', len(html))
-        if (BROWSER_CACHE):
+        if BROWSER_CACHE:
             self.send_header('Cache-Control', 'max-age=300')
         self.end_headers()
         self.wfile.write(html)
         self.wfile.flush()
-        return
+
     
     def process_server_data(self, path: str) -> None:
         if(IS_SERVER == False):

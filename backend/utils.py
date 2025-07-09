@@ -9,7 +9,7 @@ import json
 import re
 from mySecrets import hexToStr
 import traceback
-import fitz
+import fitz  # PyMuPDF
 from R_http import fov_multi
 from my_email import send_email
 

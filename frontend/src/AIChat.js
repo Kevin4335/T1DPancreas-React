@@ -7,7 +7,12 @@ import { useTheme } from '@mui/material/styles';
 import { useLocation } from 'react-router-dom';
 
 // Configuration constants
-const AI_CHAT_URL = '/chat'; // Backend endpoint for chat API
+let BASEURL = '';
+if (process.env.NODE_ENV === 'development') {
+  BASEURL = 'http://localhost:9035';
+}
+
+const AI_CHAT_URL = `${BASEURL}/chat`; // Backend endpoint for chat API
 const TEST_MODE = true; // Set to false to use real backend
 
 function AIChat() {
@@ -133,7 +138,6 @@ function AIChat() {
     const newMessages = [...messages, { type: 'user', content }, { type: 'text', content: 'Loading ......' }];
     setMessages(newMessages);
     localStorage.setItem('display-history', JSON.stringify(newMessages));
-
     try {
       let data;
       if (TEST_MODE) {
@@ -294,7 +298,6 @@ function AIChat() {
                             p: 1.5,
                             bgcolor: msg.type === 'user' ? 'primary.main' : 'grey.200',
                             color: msg.type === 'user' ? 'primary.contrastText' : 'text.primary',
-                            borderRadius: 2,
                             maxWidth: '75%',
                           }}
                           elevation={2}
@@ -305,11 +308,10 @@ function AIChat() {
                             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                               <img
                                 src={msg.content}
-                                alt="AI sent an image"
+                                alt="AI sent"
                                 style={{ 
                                   maxWidth: 200, 
                                   maxHeight: 200, 
-                                  borderRadius: 8, 
                                   margin: 8,
                                   cursor: 'pointer',
                                   transition: 'transform 0.2s',
@@ -388,7 +390,6 @@ function AIChat() {
             maxWidth: '90vw',
             maxHeight: '90vh',
             bgcolor: 'background.paper',
-            borderRadius: 2,
             boxShadow: 24,
             p: 1
           }}
@@ -413,12 +414,11 @@ function AIChat() {
           {/* Full-size image */}
           <img
             src={lightboxImage}
-            alt="Full size image"
+            alt="Full size"
             style={{
               maxWidth: '100%',
               maxHeight: '100%',
               display: 'block',
-              borderRadius: 8
             }}
           />
         </Box>

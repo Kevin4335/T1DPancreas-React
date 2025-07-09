@@ -377,16 +377,19 @@ function FOV() {
                                             maxWidth: 800,
                                             aspectRatio: '1 / 1',
                                             objectFit: 'contain',
-                                            display: 'block',
                                             margin: 'auto',
                                             padding: 2,
                                             display: 'flex', 
+                                            flexDirection: 'column',
                                             justifyContent: 'center', 
                                             alignItems: 'center',
                                         }}>
-                                        <Typography color="textSecondary">
-                                            Select parameters and click "Generate FOV Image" to view the result
-                                        </Typography>
+                                            <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
+                                                No Plot Generated Yet
+                                            </Typography>
+                                            <Typography color="text.secondary">
+                                                Select parameters and click "Generate FOV Image" to view the result
+                                            </Typography>
                                     </Box>
                                 )}
                             </Paper>

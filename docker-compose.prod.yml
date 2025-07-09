@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  backend-service:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile.prod
+    ports:
+      - 9035:80
+    environment:
+      - IS_SERVER=true
+      - ENV_MODE=production
