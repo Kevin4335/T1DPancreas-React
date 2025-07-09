@@ -105,7 +105,7 @@ function AIChat() {
       return {
         messages: [
           { type: 'text', content: 'Here is the image you requested:' },
-          { type: 'image', content: '/example.png' } // Assuming example.png is in public folder
+          { type: 'image', content: `${process.env.PUBLIC_URL}/imgs/example.png` }
         ],
         history: JSON.parse(localStorage.getItem('openai-history') || '[]')
       };

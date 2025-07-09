@@ -52,7 +52,7 @@ function About() {
             <Grid item xs={12} sm={3}>
               <Box sx={{ textAlign: 'center' }}>
                 <Avatar 
-                  src="/imgs/yuling.png" 
+                  src={`${process.env.PUBLIC_URL}/imgs/yuling.png`}
                   alt="Yuling Han"
                   sx={{ width: 150, height: 150, mx: 'auto' }}
                 />
@@ -78,7 +78,7 @@ function About() {
             <Grid item xs={12} sm={3}>
               <Box sx={{ textAlign: 'center' }}>
                 <Avatar 
-                  src="/imgs/liuliu.png" 
+                  src={`${process.env.PUBLIC_URL}/imgs/liuliu.png`}
                   alt="Liuliu Yang"
                   sx={{ width: 150, height: 150, mx: 'auto' }}
                 />
@@ -104,7 +104,7 @@ function About() {
             <Grid item xs={12} sm={3}>
               <Box sx={{ textAlign: 'center' }}>
                 <Avatar 
-                  src="/imgs/dongliang.jpg" 
+                  src={`${process.env.PUBLIC_URL}/imgs/dongliang.jpg`}
                   alt="Dongliang Leng"
                   sx={{ width: 150, height: 150, mx: 'auto' }}
                 />
@@ -133,7 +133,7 @@ function About() {
             <Grid item xs={12} sm={3}>
               <Box sx={{ textAlign: 'center' }}>
                 <Avatar 
-                  src="/imgs/jtc.jpeg" 
+                  src={`${process.env.PUBLIC_URL}/imgs/jtc.jpeg`}
                   alt="Tiancheng Jiao"
                   sx={{ width: 150, height: 150, mx: 'auto' }}
                 />
@@ -162,7 +162,7 @@ function About() {
             <Grid item xs={12} sm={3}>
               <Box sx={{ textAlign: 'center' }}>
                 <Avatar 
-                  src="/imgs/ricky.png" 
+                  src={`${process.env.PUBLIC_URL}/imgs/ricky.png`}
                   alt="Ricky Han"
                   sx={{ width: 150, height: 150, mx: 'auto' }}
                 />
@@ -191,7 +191,7 @@ function About() {
             <Grid item xs={12} sm={3}>
               <Box sx={{ textAlign: 'center' }}>
                 <Avatar 
-                  src="/imgs/yuanhao.jpeg" 
+                  src={`${process.env.PUBLIC_URL}/imgs/yuanhao.jpeg`}
                   alt="Yuanhao Huang"
                   sx={{ width: 150, height: 150, mx: 'auto' }}
                 />

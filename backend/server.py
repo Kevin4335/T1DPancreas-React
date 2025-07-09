@@ -33,7 +33,7 @@ USE_BUILT = False
 registered = []
 
 ENV_MODE = os.environ.get("ENV_MODE", "development")
-
+BUILD_DIR = ''
 print(ENV_MODE)
 if ENV_MODE == "production":
     # Base path to React build folder
@@ -146,24 +146,26 @@ SITEMAP = SITEMAP.replace('$lastmod-date$', datetime.now(timezone.utc).strftime(
 
 class Request(BaseHTTPRequestHandler):
     def do_GET(self) -> None:
-        path = self.path
-        if (path == '/'):
-            path = '/html/index.html'
-        if (path == '/index.html'):
-            path = '/html/index.html'
-        if (path.startswith('/html/')):
-            return self.process_html('/index.html')
-        if (path.startswith('/imgs/')):
-            return self.process_img(path)
-        if (path.startswith('/api/')):
+        path = self.path.split('?')[0]
+        if path in ['/', '/index.html']:
+            return self.process_html('/index.html')  # React root
+        if path.startswith('/static/') or path.startswith('/imgs/'):
+            if ENV_MODE == "production":
+                return self.serve_image_from_build(path)
+        if path.startswith('/api/'):
             return self.process_get_api(path)
-        if(path.startswith('/data/')):
+        if path.startswith('/data/'):
             return self.process_server_data(path)
-        if (path == '/robots.txt'):
+        if path == '/robots.txt':
             return self.process_robots_txt()
-        if (path == '/sitemap.xml'):
+        if path == '/sitemap.xml':
             return self.process_sitemap_xml()
-        return self.process_404(self)
+
+        if ENV_MODE == "production":
+            return self.process_html('/index.html')
+        
+        return self.process_404()
+
 
     def do_POST(self) -> None:
         path = self.path
@@ -215,6 +217,23 @@ class Request(BaseHTTPRequestHandler):
         self.wfile.flush()
         return
     
+    def serve_image_from_build(self, path: str) -> None:
+        try:
+            full_path = os.path.join(BUILD_DIR, path.lstrip('/'))
+            with open(full_path, 'rb') as f:
+                data = f.read()
+            self.send_response(200)
+            self.send_header('Content-Type', 'image/jpeg')  # or detect dynamically
+            self.send_header('Content-Length', len(data))
+            self.send_header('Cache-Control', 'max-age=86400')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            self.wfile.write(data)
+            self.wfile.flush()
+        except Exception as e:
+            print(f"Error serving image: {e}")
+            return self.process_404()
+        
     def process_html(self, path: str) -> None:
         if '..' in path:
             return self.process_404(attack=True)
