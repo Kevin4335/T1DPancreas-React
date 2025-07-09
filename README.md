@@ -67,7 +67,7 @@ docker-compose up --build
 ## Deployment Instructions
 ### First Time on Server
 - Contact server admin to open ports 9035, 80 and 22
-- Move all files except node_modules and __pycache from local to the ubuntu@{server_ip} under folder "webserver"
+- Move all files except node_modules and __pycache from local to the `ubuntu@{server_ip}` under folder "webserver"
 - Advised to use VSCode
 - Ensure you have rsa key file and added to rsa keys locally
 - Install Docker: 
@@ -92,7 +92,7 @@ sudo ufw enable
 ```bash
 sudo docker ps
 ```
-You can now safely leave. There should only be one container running. 
+You can now safely leave. There should only be one container running. Ensure that the server is accessible at `http://{server_ip}:9035`
 
 ---
 
@@ -114,7 +114,7 @@ sudo docker-compose -f docker-compose.prod.yml up --build -d
 ---
 
 ## Notes
-- The production docker system serves the built frontend code using the backend server. This is different from the development docker system which creates 2 docker containers, one for frontend and one for backend.
+- The production docker system serves the built frontend code using the backend server on port 9035. This is different from the development docker system which creates 2 docker containers, one for frontend (port 3000) and one for backend (port 9035).
 - The development frontend is configured for live code reload. The production environment is not. 
 
 ## Troubleshooting
