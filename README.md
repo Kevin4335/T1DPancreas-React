@@ -109,7 +109,8 @@ sudo docker rm <container_name>
 - Procede to replace pieces of code. Simply delete files and add new ones. This includes backend and frontend files
 - Then restart the Docker container:
 ```bash
-sudo docker-compose -f docker-compose.prod.yml up --build -d
+sudo docker-compose -f docker-compose.prod.yml build --no-cache
+sudo docker-compose -f docker-compose.prod.yml up -d
 ```
 ---
 

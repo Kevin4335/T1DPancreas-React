@@ -25,12 +25,34 @@ function FOV() {
     const GLB_DATA_SERVER_URL = 'http://localhost:5000'; // Update this to match your backend URL
     
     const conditionOptions = ['Control', 'AB+LN-', 'AB+LN+', 'T1D'];
-    const donorOptions = [
-            "HPAP-008", "HPAP-016", "HPAP-024", "HPAP-029",
-            "HPAP-038", "HPAP-045", "HPAP-072", "HPAP-078", "HPAP-084", "HPAP-089", "HPAP-092", "HPAP-107",
-            "HPAP-122", "HPAP-123", "HPAP-129", "HPAP-131", "HPAP-140", "HPAP-148", "HPAP-149"
-        ];
-    const fovOptions = Array.from({length: 105}, (_, i) => (i + 1).toString());
+    const donorOptionsByCondition = {
+        'Control': ['HPAP-122', 'HPAP-129', 'HPAP-131', 'HPAP-140'],
+        'AB+LN-': ['HPAP-024', 'HPAP-045', 'HPAP-072', 'HPAP-092', 'HPAP-148'],
+        'AB+LN+': ['HPAP-008', 'HPAP-016', 'HPAP-029', 'HPAP-038', 'HPAP-107'],
+        'T1D': ['HPAP-078', 'HPAP-084', 'HPAP-089', 'HPAP-123', 'HPAP-149']
+    };
+
+    const fovOptionsByDonor = {
+        "HPAP-008": [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,94,95],
+        "HPAP-016": [76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93],
+        "HPAP-024": [29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49],
+        "HPAP-029": [49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,100],
+        "HPAP-038": [24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48],
+        "HPAP-045": [100,101,102,103],
+        "HPAP-072": [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28],
+        "HPAP-078": [76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97],
+        "HPAP-084": [34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50],
+        "HPAP-089": [26,27,28,29,30,31,32,33,98,99,100],
+        "HPAP-092": [50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74],
+        "HPAP-107": [67,68,69,70,71,72,73,74,75,96,97,98,99],
+        "HPAP-122": [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15],
+        "HPAP-123": [51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75],
+        "HPAP-129": [66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104,105],
+        "HPAP-131": [16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40],
+        "HPAP-140": [41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65],
+        "HPAP-148": [75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99],
+        "HPAP-149": [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25]
+    };
     const geneDisplayOptions = ['None', 'Single Gene', 'Multi Gene (Max 3)'];
     const singleGeneOptions = ['INS', 'GCG', 'SST', 'PPY', 'KRT19']; // You can replace these
     
@@ -140,13 +162,20 @@ function FOV() {
         }
         
         // Construct image URL based on fovOLD.js format
-        let link = `/02.images/${donor}/${donor}.${fov}.png`;
-        
-        if (geneDisplay === 'Single Gene') {
-            // Format gene name like fovOLD.js
-            let gene = replaceAll(singleGene, '/', '.');
-            gene = replaceAll(gene, ' ', '@');
-            link = `/02.images/${donor}/${donor}.${fov}.${gene}.png`;
+        let link = '';
+
+        // If geneDisplay is 'None', use the spatial_plots path with underscore and _Image.png suffix
+        if (geneDisplay === 'None') {
+            link = `/spatial_plots/${donor}/${donor}_${fov}_Image.png`;
+        } else {
+            // Otherwise use your previous format
+            link = `/02.images/${donor}/${donor}.${fov}.png`;
+            
+            if (geneDisplay === 'Single Gene') {
+                let gene = replaceAll(singleGene, '/', '.');
+                gene = replaceAll(gene, ' ', '@');
+                link = `/02.images/${donor}/${donor}.${fov}.${gene}.png`;
+            }
         }
         
         const fullImageUrl = GLB_DATA_SERVER_URL + link;
@@ -198,7 +227,10 @@ function FOV() {
                                         <Select
                                             value={condition}
                                             label="Condition"
-                                            onChange={(e) => setCondition(e.target.value)}
+                                            onChange={(e) => {
+                                                setCondition(e.target.value);
+                                                setDonor(''); // Reset donor when condition changes
+                                            }}
                                         >
                                             {conditionOptions.map((option) => (
                                                 <MenuItem key={option} value={option}>
@@ -215,8 +247,9 @@ function FOV() {
                                             value={donor}
                                             label="Donor"
                                             onChange={(e) => setDonor(e.target.value)}
+                                            disabled={!condition}
                                         >
-                                            {donorOptions.map((option) => (
+                                            {(donorOptionsByCondition[condition] || []).map((option) => (
                                                 <MenuItem key={option} value={option}>
                                                     {option}
                                                 </MenuItem>
@@ -231,10 +264,11 @@ function FOV() {
                                             value={fov}
                                             label="FOV"
                                             onChange={(e) => setFov(e.target.value)}
+                                            disabled={!donor}
                                         >
-                                            {fovOptions.map((option) => (
-                                                <MenuItem key={option} value={option}>
-                                                    {option}
+                                            {(fovOptionsByDonor[donor] || []).map(fovNum => (
+                                                <MenuItem key={fovNum} value={fovNum}>
+                                                    {fovNum}
                                                 </MenuItem>
                                             ))}
                                         </Select>

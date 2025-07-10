@@ -147,6 +147,45 @@ SITEMAP = SITEMAP.replace('$lastmod-date$', datetime.now(timezone.utc).strftime(
 class Request(BaseHTTPRequestHandler):
     def do_GET(self) -> None:
         path = self.path.split('?')[0]
+    
+    # Serve your existing stuff...
+
+    # === Add this for spatial_plots ===
+        if path.startswith('/spatial_plots/'):
+            # Map URL to filesystem path
+            local_path = path[len('/spatial_plots/'):]  # strip prefix
+            # Security: prevent path traversal attack
+            if '..' in local_path or local_path.startswith('/'):
+                return self.process_404(attack=True)
+            
+            base_dir = '/mnt/mountpoint/T1D_Cosmx/figures/spatial_plots/FOV_images_all_cells'
+            file_path = os.path.join(base_dir, local_path)
+            if not os.path.isfile(file_path):
+                return self.process_404()
+            
+            try:
+                with open(file_path, 'rb') as f:
+                    data = f.read()
+                self.send_response(200)
+                # Set content-type dynamically based on extension
+                if file_path.lower().endswith('.png'):
+                    self.send_header('Content-Type', 'image/png')
+                elif file_path.lower().endswith('.jpg') or file_path.lower().endswith('.jpeg'):
+                    self.send_header('Content-Type', 'image/jpeg')
+                else:
+                    self.send_header('Content-Type', 'application/octet-stream')
+                self.send_header('Content-Length', len(data))
+                self.send_header('Cache-Control', 'max-age=86400')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(data)
+                self.wfile.flush()
+                return
+            except Exception as e:
+                print(f"Error serving spatial plot image: {e}")
+                return self.process_404()
+
+        path = self.path.split('?')[0]
         if path in ['/', '/index.html']:
             return self.process_html('/index.html')  # React root
         if path.startswith('/static/') or path.startswith('/imgs/'):

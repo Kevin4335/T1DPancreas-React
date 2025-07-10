@@ -273,33 +273,41 @@ hex_to_string <- function(hex_str) {
 
 app <- list(
   call = function(req) {
-    url <- req$PATH_INFO
-    json_data <- hex_to_string(substr(url, 2, nchar(url)))
+    path <- req$PATH_INFO
+
+    if (path == "/genes") {
+      genes <- rownames(obj)
+      return(list(
+        status = 200L,
+        headers = list(
+          'Content-Type' = 'application/json',
+          'Access-Control-Allow-Origin' = '*'
+        ),
+        body = toJSON(genes)
+      ))
+    }
+
+    # existing hex-to-JSON decoding for the other calls
+    json_data <- hex_to_string(substr(path, 2, nchar(path)))
     data <- fromJSON(json_data)
 
     f <- data$f
-    if(f == 1){
+    if (f == 1) {
       cat('image_FOV_cellType', "\n")
-      image_FOV_cellType(data$p1, data$p2, data$p3, data$p4, data$p6)
-    }
-    if(f == 2){
+      image_FOV_cellType(data$p1, data$p2, data$p3, data$p4)
+    } else if (f == 2) {
       cat('exp_func', "\n")
-      exp_func(data$p1, data$p2, data$p6)
+      exp_func(data$p1, data$p2)
     }
 
-    # 构建响应体
-    response_body <- paste0("finished")
-
-    # 返回响应
     return(list(
       status = 200L,
-      headers = list(
-        'Content-Length' = '8'
-      ),
-      body = response_body
+      headers = list('Content-Length' = '8'),
+      body = "finished"
     ))
   }
 )
+
 
 
 server <- startServer("0.0.0.0", 9020, app)

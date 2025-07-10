@@ -10,3 +10,5 @@ services:
     environment:
       - IS_SERVER=true
       - ENV_MODE=production
+    volumes:
+      - /mnt/mountpoint/T1D_Cosmx/figures/spatial_plots/FOV_images_all_cells:/mnt/mountpoint/T1D_Cosmx/figures/spatial_plots/FOV_images_all_cells:ro
