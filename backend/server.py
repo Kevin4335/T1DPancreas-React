@@ -152,25 +152,32 @@ class Request(BaseHTTPRequestHandler):
 
     # === Add this for spatial_plots ===
         if path.startswith('/spatial_plots/'):
-            # Map URL to filesystem path
-            local_path = path[len('/spatial_plots/'):]  # strip prefix
-            # Security: prevent path traversal attack
+            local_path = path[len('/spatial_plots/'):]
+            
+            # Prevent traversal
             if '..' in local_path or local_path.startswith('/'):
                 return self.process_404(attack=True)
-            
-            base_dir = '/mnt/mountpoint/T1D_Cosmx/figures/spatial_plots/FOV_images_all_cells'
-            file_path = os.path.join(base_dir, local_path)
+
+            # Determine the base directory
+            if local_path.startswith('all_cells/'):
+                base_dir = '/mnt/mountpoint/T1D_Cosmx/figures/spatial_plots/FOV_images_all_cells'
+                file_path = os.path.join(base_dir, local_path[len('all_cells/'):])
+            elif local_path.startswith('single_gene/'):
+                base_dir = '/mnt/mountpoint/T1D_Cosmx/figures/spatial_plots/all_fovs_single_genes'
+                file_path = os.path.join(base_dir, local_path[len('single_gene/'):])
+            else:
+                return self.process_404()
+
             if not os.path.isfile(file_path):
                 return self.process_404()
-            
+
             try:
                 with open(file_path, 'rb') as f:
                     data = f.read()
                 self.send_response(200)
-                # Set content-type dynamically based on extension
                 if file_path.lower().endswith('.png'):
                     self.send_header('Content-Type', 'image/png')
-                elif file_path.lower().endswith('.jpg') or file_path.lower().endswith('.jpeg'):
+                elif file_path.lower().endswith(('.jpg', '.jpeg')):
                     self.send_header('Content-Type', 'image/jpeg')
                 else:
                     self.send_header('Content-Type', 'application/octet-stream')
@@ -180,30 +187,29 @@ class Request(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(data)
                 self.wfile.flush()
-                return
             except Exception as e:
                 print(f"Error serving spatial plot image: {e}")
                 return self.process_404()
 
-        path = self.path.split('?')[0]
-        if path in ['/', '/index.html']:
-            return self.process_html('/index.html')  # React root
-        if path.startswith('/static/') or path.startswith('/imgs/'):
-            if ENV_MODE == "production":
-                return self.serve_image_from_build(path)
-        if path.startswith('/api/'):
-            return self.process_get_api(path)
-        if path.startswith('/data/'):
-            return self.process_server_data(path)
-        if path == '/robots.txt':
-            return self.process_robots_txt()
-        if path == '/sitemap.xml':
-            return self.process_sitemap_xml()
+            path = self.path.split('?')[0]
+            if path in ['/', '/index.html']:
+                return self.process_html('/index.html')  # React root
+            if path.startswith('/static/') or path.startswith('/imgs/'):
+                if ENV_MODE == "production":
+                    return self.serve_image_from_build(path)
+            if path.startswith('/api/'):
+                return self.process_get_api(path)
+            if path.startswith('/data/'):
+                return self.process_server_data(path)
+            if path == '/robots.txt':
+                return self.process_robots_txt()
+            if path == '/sitemap.xml':
+                return self.process_sitemap_xml()
 
-        if ENV_MODE == "production":
-            return self.process_html('/index.html')
-        
-        return self.process_404()
+            if ENV_MODE == "production":
+                return self.process_html('/index.html')
+            
+            return self.process_404()
 
 
     def do_POST(self) -> None:

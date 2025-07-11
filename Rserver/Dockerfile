@@ -1,17 +1,10 @@
 # Base image with R pre-installed
 FROM rocker/r-base:4.3.1
 
-# Switch apt sources to HTTPS mirror before update (fixes deprecated HTTP mirror issues)
-RUN sed -i 's|http://http.debian.net/debian|https://deb.debian.org/debian|g' /etc/apt/sources.list
+# Revert to HTTP for apt sources (explicitly unsafe)
+RUN sed -i 's|https://deb.debian.org/debian|http://deb.debian.org/debian|g' /etc/apt/sources.list
 
-# Install HTTPS transport support and CA certificates first (for HTTPS apt repos)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    apt-transport-https \
-    ca-certificates \
-    gnupg2 \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install all required system dependencies in one go, clean cache afterwards
+# Install system dependencies (no HTTPS support needed now)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libcurl4-openssl-dev \
     libssl-dev \
@@ -33,10 +26,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install required R packages from CRAN and Bioconductor
-RUN R -e "install.packages(c('ggplot2', 'RColorBrewer', 'magrittr', 'sf', 'httpuv', 'jsonlite'), repos='https://cloud.r-project.org')" \
- && R -e "install.packages('BiocManager', repos='https://cloud.r-project.org')" \
+RUN R -e "install.packages(c('ggplot2', 'RColorBrewer', 'magrittr', 'sf', 'httpuv', 'jsonlite'), repos='http://cran.r-project.org')" \
+ && R -e "install.packages('BiocManager', repos='http://cran.r-project.org')" \
  && R -e "BiocManager::install('Seurat')"
-
 
 # Set working directory inside container
 WORKDIR /app

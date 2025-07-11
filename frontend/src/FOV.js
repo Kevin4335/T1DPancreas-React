@@ -166,16 +166,14 @@ function FOV() {
 
         // If geneDisplay is 'None', use the spatial_plots path with underscore and _Image.png suffix
         if (geneDisplay === 'None') {
-            link = `/spatial_plots/${donor}/${donor}_${fov}_Image.png`;
+            link = `/spatial_plots/all_cells/${donor}/${donor}_${fov}_Image.png`;
+        } else if (geneDisplay === 'Single Gene') {
+            let gene = replaceAll(singleGene, '/', '.');
+            gene = replaceAll(gene, ' ', '@');
+            link = `/spatial_plots/single_gene/${condition}/${donor}/${condition}_${donor}_${fov}_${gene}.png`;
         } else {
-            // Otherwise use your previous format
+            // Fallback path (same as your old logic)
             link = `/02.images/${donor}/${donor}.${fov}.png`;
-            
-            if (geneDisplay === 'Single Gene') {
-                let gene = replaceAll(singleGene, '/', '.');
-                gene = replaceAll(gene, ' ', '@');
-                link = `/02.images/${donor}/${donor}.${fov}.${gene}.png`;
-            }
         }
         
         const fullImageUrl = GLB_DATA_SERVER_URL + link;
