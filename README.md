@@ -112,6 +112,21 @@ sudo docker rm <container_name>
 sudo docker-compose -f docker-compose.prod.yml build --no-cache
 sudo docker-compose -f docker-compose.prod.yml up -d
 ```
+
+### If something goes wrong when deploying
+- Destroy all containers
+- Be aware that this means you may need to rebuild the R container which takes a long time:
+
+```bash
+sudo docker-compose -f docker-compose.prod.yml down --volumes --remove-orphans
+sudo docker image prune -a
+```
+- Then run these again:
+```bash
+sudo docker-compose -f docker-compose.prod.yml build --no-cache
+sudo docker-compose -f docker-compose.prod.yml up -d
+```
+
 ---
 
 ## Notes

@@ -191,25 +191,25 @@ class Request(BaseHTTPRequestHandler):
                 print(f"Error serving spatial plot image: {e}")
                 return self.process_404()
 
-            path = self.path.split('?')[0]
-            if path in ['/', '/index.html']:
-                return self.process_html('/index.html')  # React root
-            if path.startswith('/static/') or path.startswith('/imgs/'):
-                if ENV_MODE == "production":
-                    return self.serve_image_from_build(path)
-            if path.startswith('/api/'):
-                return self.process_get_api(path)
-            if path.startswith('/data/'):
-                return self.process_server_data(path)
-            if path == '/robots.txt':
-                return self.process_robots_txt()
-            if path == '/sitemap.xml':
-                return self.process_sitemap_xml()
-
+        path = self.path.split('?')[0]
+        if path in ['/', '/index.html']:
+            return self.process_html('/index.html')  # React root
+        if path.startswith('/static/') or path.startswith('/imgs/'):
             if ENV_MODE == "production":
-                return self.process_html('/index.html')
-            
-            return self.process_404()
+                return self.serve_image_from_build(path)
+        if path.startswith('/api/'):
+            return self.process_get_api(path)
+        if path.startswith('/data/'):
+            return self.process_server_data(path)
+        if path == '/robots.txt':
+            return self.process_robots_txt()
+        if path == '/sitemap.xml':
+            return self.process_sitemap_xml()
+
+        if ENV_MODE == "production":
+            return self.process_html('/index.html')
+        
+        return self.process_404()
 
 
     def do_POST(self) -> None:

@@ -11,4 +11,8 @@ services:
       - IS_SERVER=true
       - ENV_MODE=production
     volumes:
+      # For "None" mode images
       - /mnt/mountpoint/T1D_Cosmx/figures/spatial_plots/FOV_images_all_cells:/mnt/mountpoint/T1D_Cosmx/figures/spatial_plots/FOV_images_all_cells:ro
+      
+      # For "Single Gene" mode images
+      - /mnt/mountpoint/T1D_Cosmx/figures/spatial_plots/all_fovs_single_genes:/mnt/mountpoint/T1D_Cosmx/figures/spatial_plots/all_fovs_single_genes:ro
