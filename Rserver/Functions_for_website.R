@@ -261,50 +261,95 @@ image_FOV_cellType <- function(Islide,Ipatient,Ifov,Igene){
 # cat("finished\n")
 
 hex_to_string <- function(hex_str) {
-  # 将十六进制字符串分割成每两个字符一组
-  hex_split <- strsplit(hex_str, "(?<=..)", perl = TRUE)[[1]]
-  # 将每个十六进制字符转换为整数，然后转换为字符
-  raw_vec <- as.raw(as.hexmode(hex_split))
-  # 将原始字节序列转换为字符串
-  result_str <- rawToChar(raw_vec)
-  return(result_str)
+  tryCatch({
+    hex_split <- strsplit(hex_str, "(?<=..)", perl = TRUE)[[1]]
+    raw_vec <- as.raw(as.hexmode(hex_split))
+    rawToChar(raw_vec)
+  }, error = function(e) {
+    cat("Hex decode error:", conditionMessage(e), "\n")
+    return(NULL)
+  })
 }
-
 
 app <- list(
   call = function(req) {
     path <- req$PATH_INFO
+    method <- req$REQUEST_METHOD
 
+    # --- CORS preflight handler ---
+    if (method == "OPTIONS") {
+      return(list(
+        status = 204L,
+        headers = list(
+          'Access-Control-Allow-Origin' = 'http://128.84.40.121:9035',
+          'Access-Control-Allow-Methods' = 'GET, POST, OPTIONS',
+          'Access-Control-Allow-Headers' = 'Content-Type',
+          'Access-Control-Max-Age' = '86400'
+        ),
+        body = ""
+      ))
+    }
+
+    # --- /genes endpoint ---
     if (path == "/genes") {
       genes <- rownames(obj)
       return(list(
         status = 200L,
         headers = list(
           'Content-Type' = 'application/json',
-          'Access-Control-Allow-Origin' = '*'
+          'Access-Control-Allow-Origin' = 'http://128.84.40.121:9035'
         ),
         body = toJSON(genes)
       ))
     }
 
-    # existing hex-to-JSON decoding for the other calls
-    json_data <- hex_to_string(substr(path, 2, nchar(path)))
-    data <- fromJSON(json_data)
+    # --- Main data handler ---
+    hex_payload <- substr(path, 2, nchar(path))
+    json_data <- hex_to_string(hex_payload)
+
+    if (is.null(json_data)) {
+      return(list(
+        status = 400L,
+        headers = list('Access-Control-Allow-Origin' = 'http://128.84.40.121:9035'),
+        body = toJSON(list(error = "Failed to decode hex payload"))
+      ))
+    }
+
+    data <- tryCatch({
+      fromJSON(json_data)
+    }, error = function(e) {
+      cat("JSON parse error:", conditionMessage(e), "\n")
+      return(NULL)
+    })
+
+    if (is.null(data)) {
+      return(list(
+        status = 400L,
+        headers = list('Access-Control-Allow-Origin' = 'http://128.84.40.121:9035'),
+        body = toJSON(list(error = "Invalid JSON data"))
+      ))
+    }
 
     f <- data$f
     if (f == 1) {
-      cat('image_FOV_cellType', "\n")
+      cat('Calling image_FOV_cellType\n')
       image_FOV_cellType(data$p1, data$p2, data$p3, data$p4)
     } else if (f == 2) {
-      cat('exp_func', "\n")
+      cat('Calling exp_func\n')
       exp_func(data$p1, data$p2)
+    } else {
+      cat("Unknown function flag:", f, "\n")
+      return(list(
+        status = 400L,
+        headers = list('Access-Control-Allow-Origin' = 'http://128.84.40.121:9035'),
+        body = toJSON(list(error = "Unknown function flag"))
+      ))
     }
 
     return(list(
       status = 200L,
       headers = list(
-        'Content-Length' = '8',
-        'Access-Control-Allow-Origin' = '*',
+        'Access-Control-Allow-Origin' = 'http://128.84.40.121:9035',
         'Content-Type' = 'application/json'
       ),
       body = toJSON(list(status = "finished"))
@@ -312,13 +357,11 @@ app <- list(
   }
 )
 
-
-
+# -- Start server --
 server <- startServer("0.0.0.0", 5000, app)
-cat("Server started on http://localhost:5000\n")
+cat("R server started on http://localhost:5000\n")
 
-
-while(TRUE) {
+while (TRUE) {
   service()
   Sys.sleep(0.001)
 }

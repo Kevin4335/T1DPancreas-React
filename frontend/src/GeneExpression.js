@@ -46,7 +46,7 @@ function GeneExpression() {
     );
     
     // Configuration
-    const GLB_API_SERVER_URL = 'http://localhost:5000'; // Update this to match your backend URL
+    const GLB_API_SERVER_URL = 'http://128.84.40.121:5000'; // Update this to match your backend URL
     const GLB_SINGLE_GENE_TIME = 90;
     const GLB_MULTI_GENE_TIME = 35;
     
@@ -171,15 +171,18 @@ function GeneExpression() {
         try {
             // Prepare request data (same format as GeneExpOLD.js)
             const requestData = {
-                f: 2,               
-                p1: validGenes,     
-                p2: checkedCellTypes 
+                f: 2,
+                p1: validGenes.join(','),
+                p2: checkedCellTypes.join(',')
             };
             
             const jsonData = JSON.stringify(requestData);
             const hexData = stringToHex(jsonData);
             const url = `${GLB_API_SERVER_URL}/gene_exp/${hexData}`;
-            
+
+            console.log('JSON Data:', jsonData);
+            console.log('Hex Data:', hexData);
+
             console.log('Submitting gene expression request:', requestData);
             console.log('Request URL:', url);
             

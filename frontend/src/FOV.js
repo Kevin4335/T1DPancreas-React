@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button, Typography, Container, TextField, Grid, Box, Paper, FormControl, InputLabel, Select, MenuItem, Alert } from '@mui/material';
 import Navbar from './components/NavBar';
 import Footer from './components/Footer';
 import { useTheme } from '@mui/material/styles';
+
 
 function FOV() {
     const theme = useTheme();
@@ -20,7 +21,19 @@ function FOV() {
     const [imageUrl, setImageUrl] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [singleGeneOptions, setSingleGeneOptions] = useState([]);
     
+    useEffect(() => {
+        fetch('http://128.84.40.121:5000/genes')
+            .then(response => response.json())
+            .then(data => {
+                setSingleGeneOptions(data);
+                console.log("Loaded genes:", data);
+            })
+            .catch(error => {
+                console.error("Error fetching genes:", error);
+            });
+    }, []);
     // Configuration
     const GLB_DATA_SERVER_URL = ''; // Update this to match your backend URL
     
@@ -54,18 +67,6 @@ function FOV() {
         "HPAP-149": [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25]
     };
     const geneDisplayOptions = ['None', 'Single Gene', 'Multi Gene (Max 3)'];
-    let singleGeneOptions = [];
-
-    fetch('http://localhost:5000/genes')
-    .then(response => response.json())
-    .then(data => {
-        singleGeneOptions = data;
-        console.log("Loaded genes:", singleGeneOptions);
-        // You can now use `singleGeneOptions` in your dropdown, etc.
-    })
-    .catch(error => {
-        console.error("Error fetching genes:", error);
-    });
     
     // Helper function to replace characters in gene names (same as fovOLD.js)
     const replaceAll = (string, a, b) => {
@@ -179,15 +180,33 @@ function FOV() {
         if (geneDisplay === 'None') {
             link = `/spatial_plots/all_cells/${donor}/${donor}_${fov}_Image.png`;
         } else if (geneDisplay === 'Single Gene') {
+            const folderMap = {
+                'Control': 'CTRL',
+                'AB+LN-': 'ABposLNminus',
+                'AB+LN+': 'ABposLNpos',
+                'T1D': 'T1D'
+            };
+
+            const filenameMap = {
+                'Control': 'Control',
+                'AB+LN-': 'AB_plus_LN_minus',
+                'AB+LN+': 'AB_plus_LN_plus',
+                'T1D': 'T1D'
+            };
+
+            const outerFolder = folderMap[condition] || condition;
+            const filenameCondition = filenameMap[condition] || condition;
+
             let gene = replaceAll(singleGene, '/', '.');
             gene = replaceAll(gene, ' ', '@');
-            link = `/spatial_plots/single_gene/${condition}/${donor}/${condition}_${donor}_${fov}_${gene}.png`;
+
+            link = `/spatial_plots/single_gene/${outerFolder}/${donor}/${filenameCondition}_${donor}_${fov}_${gene}.png`;
         } else {
             // Fallback path (same as your old logic)
-            link = `/02.images/${donor}/${donor}.${fov}.png`;
+            link = 'http://128.84.40.121:5000' + `/02.images/${donor}/${donor}.${fov}.png`;
         }
         
-        const fullImageUrl = 'http://localhost:5000' + link;
+        const fullImageUrl =  link;
         setImageUrl(fullImageUrl);
         setIsLoading(false);
         
