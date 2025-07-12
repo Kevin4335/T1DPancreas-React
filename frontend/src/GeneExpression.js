@@ -32,12 +32,11 @@ function GeneExpression() {
     
     // Cell types (same as GeneExpOLD.js)
     const cellTypes = [
-        'Alpha cells', 'Beta cells', 'Delta cells', 'PP cells',
-        'Ductal cells', 'Acinar cells', 'Endothelial cells',
-        'Fibroblasts', 'Immune cells', 'Nerve cells',
-        'Pericytes', 'Smooth muscle cells', 'Stellate cells', 'Other cells'
+        "Acinar", "Alpha", "Beta", "Delta", "Ductal", "Endothelial", "Mesenchymal",
+        "B cells",  "Dendritic cells", "Macrophages", "Monocytes", "Granulocytes", 
+        "NK cells", "Pre-B cells", "T cells",  "Unknown"
     ];
-    
+
     // Cell type selection state
     const [selectedCellTypes, setSelectedCellTypes] = useState(
         cellTypes.reduce((acc, cellType) => {
@@ -152,10 +151,11 @@ function GeneExpression() {
             return;
         }
         
-        const checkedCellTypes = Object.values(selectedCellTypes);
-        const hasSelectedCellType = checkedCellTypes.some(checked => checked);
-        
-        if (!hasSelectedCellType) {
+        const checkedCellTypes = Object.entries(selectedCellTypes)
+            .filter(([_, checked]) => checked)
+            .map(([cellType]) => cellType);
+
+        if (checkedCellTypes.length === 0) {
             setErrorMessage('Please select at least one cell type.');
             return;
         }
@@ -171,8 +171,9 @@ function GeneExpression() {
         try {
             // Prepare request data (same format as GeneExpOLD.js)
             const requestData = {
-                genes: validGenes,
-                cell_types: checkedCellTypes
+                f: 2,               
+                p1: validGenes,     
+                p2: checkedCellTypes 
             };
             
             const jsonData = JSON.stringify(requestData);

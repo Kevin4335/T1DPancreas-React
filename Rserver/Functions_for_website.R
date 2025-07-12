@@ -302,16 +302,20 @@ app <- list(
 
     return(list(
       status = 200L,
-      headers = list('Content-Length' = '8'),
-      body = "finished"
+      headers = list(
+        'Content-Length' = '8',
+        'Access-Control-Allow-Origin' = '*',
+        'Content-Type' = 'application/json'
+      ),
+      body = toJSON(list(status = "finished"))
     ))
   }
 )
 
 
 
-server <- startServer("0.0.0.0", 9020, app)
-cat("Server started on http://localhost:9020\n")
+server <- startServer("0.0.0.0", 5000, app)
+cat("Server started on http://localhost:5000\n")
 
 
 while(TRUE) {

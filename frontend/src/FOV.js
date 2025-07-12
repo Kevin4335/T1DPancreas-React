@@ -22,7 +22,7 @@ function FOV() {
     const [isLoading, setIsLoading] = useState(false);
     
     // Configuration
-    const GLB_DATA_SERVER_URL = 'http://localhost:5000'; // Update this to match your backend URL
+    const GLB_DATA_SERVER_URL = ''; // Update this to match your backend URL
     
     const conditionOptions = ['Control', 'AB+LN-', 'AB+LN+', 'T1D'];
     const donorOptionsByCondition = {
@@ -54,7 +54,18 @@ function FOV() {
         "HPAP-149": [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25]
     };
     const geneDisplayOptions = ['None', 'Single Gene', 'Multi Gene (Max 3)'];
-    const singleGeneOptions = ['INS', 'GCG', 'SST', 'PPY', 'KRT19']; // You can replace these
+    let singleGeneOptions = [];
+
+    fetch('http://localhost:5000/genes')
+    .then(response => response.json())
+    .then(data => {
+        singleGeneOptions = data;
+        console.log("Loaded genes:", singleGeneOptions);
+        // You can now use `singleGeneOptions` in your dropdown, etc.
+    })
+    .catch(error => {
+        console.error("Error fetching genes:", error);
+    });
     
     // Helper function to replace characters in gene names (same as fovOLD.js)
     const replaceAll = (string, a, b) => {
@@ -176,7 +187,7 @@ function FOV() {
             link = `/02.images/${donor}/${donor}.${fov}.png`;
         }
         
-        const fullImageUrl = GLB_DATA_SERVER_URL + link;
+        const fullImageUrl = 'http://localhost:5000' + link;
         setImageUrl(fullImageUrl);
         setIsLoading(false);
         

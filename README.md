@@ -141,6 +141,8 @@ sudo docker-compose -f docker-compose.prod.yml up -d
   sudo usermod -aG docker $USER
   ```
   - Note: `sudo usermod -aG docker $USER` may not be guaranteed to work. Try to logoff and in. This may also not work.
+  
+- ps aux | grep Functions_for_website.R to find the R server if it's running
 
 ## Future Plans
  - Enable automatic builds and deployments

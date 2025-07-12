@@ -23,12 +23,3 @@ services:
     # Uncomment the following lines if you want live code reloads during development
     volumes:
        - ./backend:/app
-  # rserver-service:
-  #   build: ./Rserver
-  #   ports:
-  #     - 9020:9020
-  #   volumes:
-  #     - ./Rserver:/app
-  #     - /mnt/mountpoint:/mnt/mountpoint  # Assuming external RDS file is available here
-  #   environment:
-  #     - R_MAX_VSIZE=10Gb
