@@ -6,6 +6,17 @@ import { useTheme } from '@mui/material/styles';
 
 
 function FOV() {
+    
+    const stringToHex = (str) => {
+        const encoder = new TextEncoder();
+        const bytes = encoder.encode(str);
+        let hex = '';
+        for (let byte of bytes) {
+            hex += byte.toString(16).padStart(2, '0');
+        }
+        return hex;
+    };
+    
     const theme = useTheme();
     
     // State for form fields
@@ -104,7 +115,7 @@ function FOV() {
     };
     
     // Handle submit
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (!isSubmitActive()) return;
         
         setIsLoading(true);
@@ -156,21 +167,6 @@ function FOV() {
                 setIsLoading(false);
                 return;
             }
-            
-            // Prepare data for email submission (similar to fovOLD.js)
-            const requestData = {
-                condition,
-                donor,
-                fov,
-                genes,
-                email
-            };
-            
-            console.log('Submitting multi-gene request:', requestData);
-            // TODO: Implement actual email submission API call
-            setErrorMessage('Multi-gene request submitted. You will receive an email notification when the image is ready.');
-            setIsLoading(false);
-            return;
         }
         
         // Construct image URL based on fovOLD.js format
@@ -179,6 +175,9 @@ function FOV() {
         // If geneDisplay is 'None', use the spatial_plots path with underscore and _Image.png suffix
         if (geneDisplay === 'None') {
             link = `/spatial_plots/all_cells/${donor}/${donor}_${fov}_Image.png`;
+            setImageUrl(link);
+            setIsLoading(false);
+            console.log('Using pre-generated image:', link);
         } else if (geneDisplay === 'Single Gene') {
             const folderMap = {
                 'Control': 'CTRL',
@@ -201,16 +200,85 @@ function FOV() {
             gene = replaceAll(gene, ' ', '@');
 
             link = `/spatial_plots/single_gene/${outerFolder}/${donor}/${filenameCondition}_${donor}_${fov}_${gene}.png`;
+            setImageUrl(link);
+            setIsLoading(false);
+            console.log('Using pre-generated single gene image:', link);
+        } else if (geneDisplay === 'Multi Gene (Max 3)') {
+            try {
+                const validGenes = multiGeneInput.split(',').map(g => g.trim()).filter(Boolean);
+                const filenameMap = {
+                    'Control': 'Control',
+                    'AB+LN-': 'AB_plus_LN_minus',
+                    'AB+LN+': 'AB_plus_LN_plus',
+                    'T1D': 'T1D'
+                };
+                const requestData = {
+                    f: 1,
+                    p1: filenameMap[condition],
+                    p2: donor,
+                    p3: fov,
+                    p4: validGenes.join(',')
+                };
+
+                const jsonData = JSON.stringify(requestData);
+                const hexData = stringToHex(jsonData);
+                const url = `http://128.84.40.121:5000/fov/${hexData}`;
+
+                console.log('JSON Data:', jsonData);
+                console.log('Hex Data:', hexData);
+
+                console.log('Submitting fov request:', requestData);
+                console.log('Request URL:', url);
+
+                const response = await fetch(url, { method: 'GET' });
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.img) {
+                        const imageUrl = `data:image/png;base64,${data.img}`;
+                        setImageUrl(imageUrl);
+
+                        // Send simple email
+                        const emailPayload = {
+                            email: email, 
+                            file_url: `http://128.84.40.121:9035/api/generated/${hexData}`,
+                            donor,
+                            condition
+                        };
+                        const encodedEmailPayload = JSON.stringify(emailPayload).split('').map(c => c.charCodeAt(0).toString(16).padStart(2, '0')).join('');
+                        const emailUrl = `http://128.84.40.121:9035/api/email_simple/${encodedEmailPayload}`;
+
+                        fetch(emailUrl, { method: 'GET' })
+                            .then(res => {
+                                if (res.ok) {
+                                    console.log('Simple email successfully sent.');
+                                } else {
+                                    console.error('Simple email request failed.');
+                                }
+                            })
+                            .catch(err => console.error('Simple email error:', err));
+
+                    } else {
+                        setErrorMessage('No image data received from server.');
+                    }
+                } else {
+                    const err = await response.json();
+                    setErrorMessage(`HTTP ${response.status}: ${err?.error || err?.msg || response.statusText}`);
+                }
+            } catch (error) {
+                console.error('FOV request error:', error);
+                if (error.name === 'AbortError') {
+                    setErrorMessage('Request timeout. Please try again.');
+                } else {
+                    setErrorMessage(`Network error: ${error.message}`);
+                }
+            } finally {
+                setIsLoading(false);
+            }
         } else {
-            // Fallback path (same as your old logic)
-            link = 'http://128.84.40.121:5000' + `/02.images/${donor}/${donor}.${fov}.png`;
+            setErrorMessage('Unknown geneDisplay mode');
+            setIsLoading(false);
         }
-        
-        const fullImageUrl =  link;
-        setImageUrl(fullImageUrl);
-        setIsLoading(false);
-        
-        console.log('Generated image URL:', fullImageUrl);
+
     };
     
     return (

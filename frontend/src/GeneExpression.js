@@ -102,45 +102,19 @@ function GeneExpression() {
         }));
     };
     
-    // Simulate progress bar (same logic as GeneExpOLD.js)
     const simulateProgress = () => {
-        const startTime = Date.now();
-        const totalTime = validGenes.length === 1 ? GLB_SINGLE_GENE_TIME : GLB_MULTI_GENE_TIME;
-        
-        const updateProgress = () => {
-            const elapsed = (Date.now() - startTime) / 1000;
-            const ratio = elapsed / totalTime;
-            
-            if (ratio < 1) {
-                // Complex progress calculation (same as GeneExpOLD.js)
-                let width;
-                if (ratio <= 0.8) {
-                    width = ratio / 1.1;
-                } else if (ratio <= 1.0) {
-                    const tmp = 0.727273;
-                    const finalSpeed = 0.909091 - (ratio - 0.8) / 0.2 * (0.909091 - 0.7);
-                    const tmp2 = (ratio - 0.8) * (0.909091 + finalSpeed) / 2;
-                    width = tmp + tmp2;
-                } else if (ratio <= 1.15) {
-                    const tmp = 0.8881821;
-                    const finalSpeed = 0.7 - (ratio - 1.0) / 0.15 * (0.7 - 0.3);
-                    const tmp2 = (ratio - 1.0) * (0.7 + finalSpeed) / 2;
-                    width = tmp + tmp2;
-                } else {
-                    const tmp = 0.96318201;
-                    const m = 0.3 / (1 - 0.96318201);
-                    const n = (1 - 0.96318201) / Math.exp(-1.15 * m);
-                    width = (1 - n * Math.exp(-ratio * m));
-                }
-                
-                setProgress(width * 100);
-                setTimeout(updateProgress, 20);
-            } else {
-                setProgress(100);
+        let progressValue = 0;
+
+        const increment = () => {
+            // Increase gradually to 80%
+            if (progressValue < 80) {
+                progressValue += 0.2; // Adjust speed here
+                setProgress(progressValue);
+                setTimeout(increment, 50); // Frame every 50ms = 4s to 80%
             }
         };
-        
-        updateProgress();
+
+        increment();
     };
     
     // Handle submit
@@ -188,13 +162,14 @@ function GeneExpression() {
             
             const response = await fetch(url, {
                 method: 'GET',
-                timeout: 450000 // 7.5 minutes timeout
+                timeout: 950000
             });
             
             if (response.ok) {
                 const data = await response.json();
                 if (data.img) {
                     setImageData(`data:image/png;base64,${data.img}`);
+                    setProgress(100);
                 } else {
                     setErrorMessage('No image data received from server.');
                 }

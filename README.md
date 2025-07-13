@@ -18,7 +18,7 @@ This project uses Docker Compose to orchestrate all services. You need Docker in
 
 ### 1. Clone the repository
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/Kevin4335/T1DPancreas-React.git
 cd T1DPancreas-React
 ```
 
@@ -30,7 +30,6 @@ docker-compose up --build
 - This will build and start:
   - The **frontend** (React app)
   - The **backend** (Python API server) will start but not serve frontend
-  - The **Rserver** (R HTTP server) !under development
 
 ### 3. Access the app
 - Open your browser and go to: [http://localhost:3000](http://localhost:3000)
@@ -154,3 +153,4 @@ sudo docker-compose -f docker-compose.prod.yml up -d
 
 ## Future Plans
  - Enable automatic builds and deployments
+ - Containerize the R server
