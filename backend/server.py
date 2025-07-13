@@ -13,8 +13,11 @@ from random import randint
 from _thread import start_new_thread
 from datetime import datetime, timezone
 from ai import process_ai_chat
+from my_email import send_email_with_attachment
 import os
+import traceback
 
+ALLOWED_ORIGIN = 'http://128.84.40.121:9035'
 
 IS_SERVER = os.getenv('IS_SERVER', 'false').lower() == 'true'
 
@@ -183,14 +186,14 @@ class Request(BaseHTTPRequestHandler):
                     self.send_header('Content-Type', 'application/octet-stream')
                 self.send_header('Content-Length', len(data))
                 self.send_header('Cache-Control', 'max-age=86400')
-                self.send_header('Access-Control-Allow-Origin', '*')
+                self.send_header('Access-Control-Allow-Origin', ALLOWED_ORIGIN)
                 self.end_headers()
                 self.wfile.write(data)
                 self.wfile.flush()
             except Exception as e:
                 print(f"Error serving spatial plot image: {e}")
                 return self.process_404()
-
+        
         path = self.path.split('?')[0]
         if path in ['/', '/index.html']:
             return self.process_html('/index.html')  # React root
@@ -214,8 +217,51 @@ class Request(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         path = self.path
-        if (path == '/chat'):
+        if path == '/api/email_simple':
+            content_length = int(self.headers.get('Content-Length', 0))
+            post_data = self.rfile.read(content_length)
+
+            try:
+                data = json.loads(post_data.decode('utf-8'))
+                email = data.get('email')
+                donor = data.get('donor', '')
+                condition = data.get('condition', '')
+                image_b64 = data.get('image_data')
+
+                if not email or not image_b64:
+                    self.send_response(400)
+                    self.end_headers()
+                    self.wfile.write(b'Missing email or image data.')
+                    return
+
+                # Optional size guard
+                if len(image_b64) > 10_000_000:
+                    self.send_response(413)
+                    self.end_headers()
+                    self.wfile.write(b'Payload too large.')
+                    return
+
+                subject = "Your Multi-Gene FOV Image from COVID-Lung CosMX"
+                message = f"Sample: {donor}, Condition: {condition}\n\nAttached is your FOV image."
+
+                send_email_with_attachment(email, subject, message, image_b64)
+                print("Email sent successfully.")
+
+                self.send_response(202)
+                self.send_header('Access-Control-Allow-Origin', ALLOWED_ORIGIN)
+                self.end_headers()
+            except Exception as e:
+                print("Email send failed:", e)
+                traceback.print_exc()
+                self.send_response(500)
+                self.send_header('Access-Control-Allow-Origin', ALLOWED_ORIGIN)
+                self.end_headers()
+                self.wfile.write(b'Failed to send email.')
+            return
+
+        if path == '/chat':
             return process_ai_chat(self, path)
+
         self.send_response(404)
         self.send_header('Connection', 'keep-alive')
         self.send_header('Content-Length', 13)
@@ -224,6 +270,7 @@ class Request(BaseHTTPRequestHandler):
         self.wfile.flush()
         return
 
+
     def log_message(self, format, *args):
         pass
     
@@ -231,7 +278,7 @@ class Request(BaseHTTPRequestHandler):
         print('http OPTIONS')
         self.send_response(200)
         self.send_header('Connection', 'keep-alive')
-        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Origin', ALLOWED_ORIGIN)
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type')
         self.send_header('Content-Length', 0)
@@ -271,7 +318,7 @@ class Request(BaseHTTPRequestHandler):
             self.send_header('Content-Type', 'image/jpeg')  # or detect dynamically
             self.send_header('Content-Length', len(data))
             self.send_header('Cache-Control', 'max-age=86400')
-            self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Access-Control-Allow-Origin', ALLOWED_ORIGIN)
             self.end_headers()
             self.wfile.write(data)
             self.wfile.flush()
@@ -347,7 +394,7 @@ class Request(BaseHTTPRequestHandler):
         self.send_header('Content-Length', len(data))
         if ('slide' in path):
             self.send_header('Cache-Control', f'max-age={3600*24*90}')
-        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Origin', ALLOWED_ORIGIN)
         self.end_headers()
         self.wfile.write(data)
         self.wfile.flush()
@@ -362,7 +409,7 @@ class Request(BaseHTTPRequestHandler):
         self.send_response(404)
         self.send_header('Connection', 'keep-alive')
         self.send_header('Content-Length', 13)
-        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Origin', ALLOWED_ORIGIN)
         self.end_headers()
         self.wfile.write(b'404 Not Found')
         self.wfile.flush()
@@ -370,6 +417,8 @@ class Request(BaseHTTPRequestHandler):
     
     def process_get_api(self, path: str) -> None:
         path = path[4:]
+
+        
         if (path.startswith('/email_multi/')):
             # print(path)
             success, msg, result = convert_input(path[13:])
@@ -380,7 +429,7 @@ class Request(BaseHTTPRequestHandler):
                 self.send_response(400)
                 self.send_header('Connection', 'keep-alive')
                 self.send_header('Content-Length', len(msg))
-                self.send_header('Access-Control-Allow-Origin', '*')
+                self.send_header('Access-Control-Allow-Origin', ALLOWED_ORIGIN)
                 self.end_headers()
                 self.wfile.write(msg)
                 self.wfile.flush()
@@ -395,7 +444,7 @@ class Request(BaseHTTPRequestHandler):
             self.send_response(202)
             self.send_header('Connection', 'keep-alive')
             self.send_header('Content-Length', 0)
-            self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Access-Control-Allow-Origin', ALLOWED_ORIGIN)
             self.end_headers()
             self.wfile.write(b'')
             self.wfile.flush()
@@ -414,7 +463,7 @@ class Request(BaseHTTPRequestHandler):
             self.send_header('Connection', 'keep-alive')
             self.send_header('Content-Type', 'image/png')
             self.send_header('Content-Length', len(png))
-            self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Access-Control-Allow-Origin', ALLOWED_ORIGIN)
             self.end_headers()
             self.wfile.write(png)
             self.wfile.flush()
@@ -441,7 +490,7 @@ class Request(BaseHTTPRequestHandler):
             if (len(set(my_genes)) != len(my_genes)):
                 self.send_response(500)
                 self.send_header('Connection', 'keep-alive')
-                self.send_header('Access-Control-Allow-Origin', '*')
+                self.send_header('Access-Control-Allow-Origin', ALLOWED_ORIGIN)
                 msg = json.dumps({'msg': "Genes cannot be duplicated!"}, ensure_ascii=False).encode('utf-8')
                 self.send_header('Content-Length', len(msg))
                 self.end_headers()
@@ -456,7 +505,7 @@ class Request(BaseHTTPRequestHandler):
             if (resp[0] == False):
                 self.send_response(500)
                 self.send_header('Connection', 'keep-alive')
-                self.send_header('Access-Control-Allow-Origin', '*')
+                self.send_header('Access-Control-Allow-Origin', ALLOWED_ORIGIN)
                 msg = binary_to_str(resp[1])
                 msg = json.dumps({'msg': msg}, ensure_ascii=False).encode('utf-8')
                 self.send_header('Content-Length', len(msg))
@@ -471,7 +520,7 @@ class Request(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Connection', 'keep-alive')
             self.send_header('Content-Length', len(data))
-            self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Access-Control-Allow-Origin', ALLOWED_ORIGIN)
             self.end_headers()
             self.wfile.write(data)
             self.wfile.flush()

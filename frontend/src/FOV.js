@@ -238,25 +238,16 @@ function FOV() {
                         setImageUrl(imageUrl);
 
                         // Send simple email
-                        const emailPayload = {
-                            email: email, 
-                            file_url: `http://128.84.40.121:9035/api/generated/${hexData}`,
-                            donor,
-                            condition
-                        };
-                        const encodedEmailPayload = JSON.stringify(emailPayload).split('').map(c => c.charCodeAt(0).toString(16).padStart(2, '0')).join('');
-                        const emailUrl = `http://128.84.40.121:9035/api/email_simple/${encodedEmailPayload}`;
-
-                        fetch(emailUrl, { method: 'GET' })
-                            .then(res => {
-                                if (res.ok) {
-                                    console.log('Simple email successfully sent.');
-                                } else {
-                                    console.error('Simple email request failed.');
-                                }
+                        const response = await fetch('http://128.84.40.121:9035/api/email_simple', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                email,
+                                image_data: imageUrl,
+                                donor,
+                                condition
                             })
-                            .catch(err => console.error('Simple email error:', err));
-
+                            });
                     } else {
                         setErrorMessage('No image data received from server.');
                     }

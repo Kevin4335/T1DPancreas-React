@@ -70,7 +70,6 @@ coverage.xml
 
 # Secrets and config
 backend/config.py
-backend/my_email.py
 *.env
 .env
 .env.*
