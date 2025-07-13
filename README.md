@@ -7,14 +7,14 @@ An interactive, AI-powered platform for analyzing CosMX (NanoString) spatial tra
 ## Project Structure
 
 - **frontend/**: React web application (Material-UI) for user interaction, visualization, and AI chat.
-- **backend/**: Python (Flask-like) API server that handles requests from the frontend, manages user input, and communicates with the Rserver.
+- **backend/**: Python API server that handles requests from the frontend, manages user input, and communicates with the R server.
 - **Rserver/**: R HTTP server that performs data analysis and generates images/plots using Seurat and ggplot2.
 
 ---
 
 ## Quick Start (Docker Compose) For DEV
 
-This project uses Docker Compose to orchestrate all services. You need Docker installed.
+This project uses Docker Compose to orchestrate services. You need Docker installed.
 
 ### 1. Clone the repository
 ```bash
@@ -29,11 +29,13 @@ docker-compose up --build
 
 - This will build and start:
   - The **frontend** (React app)
-  - The **backend** (Python API server) will start but not serve frontend
+  - The **backend** (Python API server) on port 9035 (also serves the React app)
 
 ### 3. Access the app
-- Open your browser and go to: [http://localhost:3000](http://localhost:3000)
-- Backend Api can be accessed, however, the frontend is served only under port 3000
+- Open your browser and go to: [http://128.84.40.121:9035](http://128.84.40.121:9035)
+- The frontend and backend are served together on this port
+- R server must be running manually on port 5000 for full functionality
+
 ---
 
 ## Directory Overview
@@ -44,83 +46,89 @@ docker-compose up --build
 - Handles user input, displays images/plots, and communicates with the backend via HTTP API
 
 ### backend/
-- Python API server
+- Python API server (Flask-like)
+- Serves the React app
 - Receives requests from frontend, validates/processes input
-- Communicates with Rserver for heavy computation and image generation
+- Communicates with Rserver for computation and image generation
 - Handles email notifications for long-running jobs
 
 ### Rserver/
-- R HTTP server (using httpuv)
+- R HTTP server (httpuv)
 - Loads Seurat objects and performs spatial transcriptomics analysis
 - Generates images/plots and returns them to the backend
+- **Note**: Not dockerized. Install all R dependencies manually via `pak`
 
 ---
 
 ## Environment & Secrets
 - **Do not commit secrets or API keys!**
-- All sensitive config (API keys, email credentials) should be set via environment variables or Docker secrets or set in config.py or .env files
+- All sensitive config (API keys, email credentials) should be set via environment variables, Docker secrets, or config files like `.env` or `config.py`
 - See `.gitignore` for ignored files.
 
 ---
 
 ## Deployment Instructions
+
 ### First Time on Server
-- Contact server admin to open ports 9035, 80 and 22
-- Move all files except node_modules and __pycache from local to the `ubuntu@{server_ip}` under folder "webserver"
-- Advised to use VSCode
-- Ensure you have rsa key file and added to rsa keys locally
-- Install Docker: 
+- Contact server admin to open ports 9035 and 5000
+- Move all project files (excluding `node_modules/`, `__pycache__/`) to `ubuntu@{server_ip}` under folder `webserver`
+- Recommended to use VSCode Remote SSH
+- Ensure your SSH key is configured locally
+
+Install Docker:
 ```bash
 sudo apt update
 sudo apt install -y docker.io docker-compose
 ```
-- Ensure you are working in webserver directory
-- Run production docker to build the React app and serve it with backend api:
+
+Start production docker:
 ```bash
 sudo docker-compose -f docker-compose.prod.yml up --build -d
 ```
-- Wait for command to run. Container is now running in background
-- Run these to open the ports:
+
+Open required ports:
 ```bash
-sudo ufw allow 80
 sudo ufw allow 9035
-sudo ufw allow 22
+sudo ufw allow 5000
 sudo ufw enable
 ```
-- Verify that docker container is running:
+
+Verify container:
 ```bash
 sudo docker ps
 ```
-You can now safely leave. There should only be one container running. Ensure that the server is accessible at `http://{server_ip}:9035`
+
+Access the app at: `http://{server_ip}:9035`
 
 ---
 
 ### Update Existing Code
-- Destroy the old container. First identify it's name. There should be only one.
+
+Kill and remove the current container:
 ```bash
 sudo docker ps
-```
-- Then run:
-```bash
 sudo docker kill <container_name>
 sudo docker rm <container_name>
 ```
-- Procede to replace pieces of code. Simply delete files and add new ones. This includes backend and frontend files
-- Then restart the Docker container:
+
+Replace code files as needed (frontend/backend)
+
+Restart:
 ```bash
 sudo docker-compose -f docker-compose.prod.yml build --no-cache
 sudo docker-compose -f docker-compose.prod.yml up -d
 ```
 
-### If something goes wrong when deploying
-- Destroy all containers
-- Be aware that this means you may need to rebuild the R container which takes a long time:
+---
 
+### Troubleshooting Deployment
+
+If errors persist:
 ```bash
 sudo docker-compose -f docker-compose.prod.yml down --volumes --remove-orphans
 sudo docker image prune -a
 ```
-- Then run these again:
+Then:
 ```bash
 sudo docker-compose -f docker-compose.prod.yml build --no-cache
 sudo docker-compose -f docker-compose.prod.yml up -d
@@ -129,28 +137,30 @@ sudo docker-compose -f docker-compose.prod.yml up -d
 ---
 
 ## Notes
-- The production docker system serves the built frontend code using the backend server on port 9035. This is different from the development docker system which creates 2 docker containers, one for frontend (port 3000) and one for backend (port 9035).
-- The development frontend is configured for live code reload. The production environment is not. 
+- In production, the backend server (port 9035) serves both API and static React frontend
+- In development, frontend is served on port 3000 and backend on 9035
+- R server is run separately and **not dockerized**, starts manually
 
-## Troubleshooting
+---
 
-- **Docker Permission Denied**
-  Run Docker commands with `sudo` or add user to the `docker` group:
-  ```bash
-  sudo usermod -aG docker $USER
-  ```
-  - Note: `sudo usermod -aG docker $USER` may not be guaranteed to work. Try to logoff and in. This may also not work.
-  
-- Find the R server if it's running:
-  ```bash
-  ps aux | grep Functions_for_website.R
-  ```
+## R Server Setup
 
-- Start the R server:
-  ```bash
-  nohup Rscript Functions_for_website.R > server.log  2>&1 &
-  ```
+To run the R server:
+```bash
+nohup Rscript Functions_for_website.R > server.log 2>&1 &
+```
+To check if it's running:
+```bash
+ps aux | grep Functions_for_website.R
+```
+
+Install all R dependencies using `pak::pak()` manually.
+
+---
 
 ## Future Plans
- - Enable automatic builds and deployments
- - Containerize the R server
+- Containerize the R server for easier deployment
+- Implement automatic builds and deployments via CI/CD
+- Add persistent image caching/storage and expiration management
+
+---
