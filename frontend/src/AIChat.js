@@ -206,7 +206,7 @@ function AIChat() {
       {/* Main chat container */}
       <Container>
         {/* Page title */}
-        <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold', marginTop: '1rem', textAlign: 'center'}}>
+        <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold', marginTop: '2rem', textAlign: 'center'}}>
           AI Chat
         </Typography>
         
@@ -253,21 +253,28 @@ function AIChat() {
                     <Grid container spacing={2} justifyContent="center">
                       {prompts.map((prompt, idx) => (
                         <Grid item xs={12} sm={4} key={idx} sx={{ display: 'flex' }}>
-                          <Card sx={{ 
-                            width: '100%',
-                            height: '100%',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            justifyContent: 'center',
-                            backgroundColor: theme.palette.SiteSecondaryColor.main,
-                            color: '#FFFFFF',
-                            borderTop: '1px dotted black',
-                            borderRight: '5px solid black',
-                            borderBottom: '5px solid black',
-                            borderLeft: '1px solid black',
-                            boxShadow: 'none',
-                            borderRadius: '0'
-                          }}>
+                          <Card sx={{
+                              width: '100%',
+                              height: '100%',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              justifyContent: 'center',
+                              borderRadius: '0.75rem',
+                              backgroundColor: theme.palette.SiteSecondaryColor.main,
+                              color: theme.palette.SiteSecondaryColor.contrastText,
+                              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)',
+                              transition: 'transform 0.2s ease, box-shadow 0.2s ease, background-color 0.3s ease',
+                              '&:hover': {
+                                transform: 'translateY(-2px)',
+                                boxShadow: '0 6px 20px rgba(0, 0, 0, 0.12)',
+                                backgroundColor: theme.palette.SiteSecondaryColor.hover,
+                              },
+                              '&:active': {
+                                transform: 'scale(0.98)',
+                                boxShadow: '0 3px 10px rgba(0, 0, 0, 0.1)',
+                                backgroundColor: theme.palette.SiteSecondaryColor.active,
+                              },
+                            }}>
                             <CardActionArea
                               sx={{ height: '100%' }}
                               onClick={() => handlePromptClick(prompt)}

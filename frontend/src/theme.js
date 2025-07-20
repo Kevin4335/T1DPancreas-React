@@ -26,15 +26,17 @@ const theme = createTheme({
       contrastText: '#000000'
     },
     SiteMainColor: {
-      main: '#1A3C64', 
+      main: '#073b4c', 
       contrastText: '#FFFFFF'
     },
     SiteSecondaryColor: {
-      main: '#156082',
-      contrastText: '#FFFFFF'
+      main: '#118ab2',
+      contrastText: '#FFFFFF',
+      hover: '#3db9df',
+      active: '#0d6e91' 
     },
     SiteTertiaryColor: {
-      main: '#1E90FF',
+      main: '#06d6a0',
       contrastText: '#FFFFFF'
     },
 
@@ -46,92 +48,6 @@ const theme = createTheme({
     fontFamily: '"Hack", monospace',
   },
   components: {
-    MuiButton:{
-      styleOverrides: {
-        root: ({ ownerState, theme }) => {
-          const bgColor =
-            theme.palette[ownerState.color || 'primary']?.main || theme.palette.primary.main;
-
-          return {
-            backgroundColor: bgColor,
-            borderTop: '1px dotted black',
-            borderRight: '5px solid black',
-            borderBottom: '5px solid black',
-            borderLeft: '1px solid black',
-            boxShadow: 'none',
-            borderRadius:'0',
-            '&:hover': {
-              backgroundColor: darken(bgColor, 0.4),
-              boxShadow: 'none',
-            },
-            '&:active': {
-              backgroundColor: darken(bgColor, 0.6),
-              borderTop: '3px solid black',
-              borderLeft: '3px solid black',
-              borderRight: '3px solid black',
-              borderBottom: '3px solid black',
-              boxShadow: 'none',
-            },
-          };
-        },
-      },
-
-      defaultProps: {
-        disableRipple: true,
-      },
-    },
-
-    MuiTextField:{
-      styleOverrides:{
-        root:{
-          '& .MuiOutlinedInput-root': {
-            borderRadius: '0',
-            backgroundColor: 'white',
-            '& fieldset': {
-              borderRadius: '0',
-              borderTop: '1px solid black',
-              borderRight: '5px solid black',
-              borderBottom: '5px solid black',
-              borderLeft: '1px solid black',
-            },
-            '&:hover fieldset': {
-              borderRadius: '0',
-              borderTop: '1px solid black',
-              borderRight: '5px solid black',
-              borderBottom: '5px solid black',
-              borderLeft: '1px solid black',
-            },
-            '&.Mui-focused fieldset': {
-              borderRadius: '0',
-              borderTop: '1px solid black',
-              borderRight: '5px solid black',
-              borderBottom: '5px solid black',
-              borderLeft: '1px solid black',
-            },
-          },
-        }
-      }
-    },
-    MuiSelect: {
-      styleOverrides: {
-        root: {
-          borderRadius: '0',
-        },
-        outlined: {
-          borderRadius: '0',
-        }
-      }
-    },
-    MuiOutlinedInput: {
-      styleOverrides: {
-        root: {
-          borderRadius: '0',
-        },
-        notchedOutline: {
-          borderRadius: '0',
-        }
-      }
-    }
   }
 });
 
