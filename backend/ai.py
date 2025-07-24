@@ -18,7 +18,7 @@ __all__ = ['process_ai_chat']
 
 PROMPT = """## 1. Introduction and Tasks
 
-You are an AI assistant of a website called Lung Spatial DB. This website is for the display of some biology data, about COVID-Lung. Its main functions include the showing the image of FOV (field of vision), gene expression, enrichment, and differential expression. Now we want to add a chatting UI on the website, users can ask any questions (precisely, send message) in natural languages.
+You are an AI assistant of a website called T1D Spatial Atlas. This website is for the display of some biology data, about Pancreas. Its main functions include the showing the image of FOV (field of vision) and gene expression. Now we want to add a chatting UI on the website, users can ask any questions (precisely, send message) in natural languages.
 
 You need to fulfil the tasks through our backend functions. More specificly, if you call the functions, the user can see the result in the browser. You also need to answer user's questions related to our website's content, if you know. You can also introduce the functions of website or how to use this if user requires. You can also answer any questions not related to this website (in this case, just act as normal GPT chatting with people).
 
@@ -38,33 +38,9 @@ The website has the following 4 functions, as following:
     '''
     show the gene expression with the selected cell types.
     genes range same to above, will be provided later, should have at least 1 gene, no upper limit.
-    cell_types have a list of 14 cell types, which are "Lymphoid cell_1", "Macrophage", "Fibroblast", "Smooth muscle cell", "Endothelial cell", "Alveolar type II cell", "Monocyte", "Plasma cell", "Red blood cell", "Lymphoid cell_2", "Alveolar type I cell", "Basal cell", "Neutrophil", "Unknown". Should select at least 1 from these, at most 14.
-    '''
-
-3. def enrichment(pathway: str, cell_type: str): -> bytes:
-    '''
-    show the enrichment of the selected pathway and cell type.
-
-    Have the following pathways:
-    1. "Pro-inflammatory", have cell_type "Macrophage", "Monocyte"
-    2. "Senescence", have cell_type "Endothelial cell", "Alveolar type II cell", "Alveolar type I cell", "Basal cell"
-    3. "Senescence-associated secretory phenotype (SASP)", have cell_type "Endothelial cell", "Alveolar type II cell", "Alveolar type I cell", "Basal cell"
-    4. "Profibrotic Geneset", have cell_type "Fibroblast", "Smooth muscle cell"
-
-    pathway can only be selected from above, and cell_type can only be selected the values listed in that pathway.
-    '''
-
-4. differential_exp(cell_type: str, condition: str) -> bytes:
-    '''
-    show the differential expression of the selected cell type and condition.
-
-    cell_type should be selected from these: "Lymphoid cell_1", "Macrophage", "Fibroblast", "Smooth muscle cell", "Endothelial cell", "Alveolar type II cell", "Monocyte", "Plasma cell", "Red blood cell", "Lymphoid cell_2", "Alveolar type I cell", "Basal cell", "Neutrophil", "Unknown".
-    condition only have 2 values: "COVID-A v.s. non-COVID", "COVID-E v.s. non-COVID"
-    '''
-
-5. umap_cell_composition() -> bytes:
-    '''
-    show the umap of cell composition in spatial lung data. This is a static image, so it does not accept any parameters.
+    cell_types have a list of cell types, which are "Acinar", "Alpha", "Beta", "Delta", "Ductal", "Endothelial", "Mesenchymal",
+    "B cells",  "Dendritic cells", "Macrophages", "Monocytes", "Granulocytes", 
+    "NK cells", "Pre-B cells", "T cells",  "Unknown". Should select at least 1 from these, at most 14.
     '''
 
 ## 3. Output Format
@@ -124,39 +100,1030 @@ A: [{\"name\": \"gene_expression\", \"parameters\": [[\"CD68\", \"CD163\"], [\"M
 
 ## 4. Our Database
 
-### 4.1 Patients and FOV
-
-non-COVID_#01: 19-36, S1
-non-COVID_#02: 73-90, S1
-non-COVID_#03: 1-18, S1
-non-COVID_#04: 55-72, S1
-non-COVID_#05: 55-72, 109-112, S2
-non-COVID_#06: 91-108, S2
-non-COVID_#07: 67-84, S3
-non-COVID_#08: 1-18, 103-108, S3
-non-COVID_#09: 1-18, S4
-non-COVID_#10: 55-72, S4
-COVID-E_#01: 91-108, S1
-COVID-E_#02: 73-90, S2
-COVID-E_#03: 37-54, S2
-COVID-E_#04: 85-102, S3
-COVID-E_#05: 19-30, S3
-COVID-E_#06: 37-54, S4
-non-COVID_#01: 37-54, S1
-non-COVID_#02: 19-36, S2
-non-COVID_#03: 1-18, S2
-non-COVID_#04: 19-36, S4
-non-COVID_#05: 31-48, S3
-non-COVID_#06: 49-66, S3
-
-The S1, S2, S3, S4 corresponds to the slides. Although this is not required in the function, you need to be able to show image if user onlt use slide number and FOV. For example, if user want to see S2 with FOV 40, you should use COVID-E_#03 40. The number range include both sides.
+### 4.1 Patients and FOV:
+    "HPAP-008": "1-23, 94-95",
+    "HPAP-016": "76-93",
+    "HPAP-024": "29-49",
+    "HPAP-029": "49-66, 100",
+    "HPAP-038": "24-48",
+    "HPAP-045": "100-103",
+    "HPAP-072": "1-28",
+    "HPAP-078": "76-97",
+    "HPAP-084": "34-50",
+    "HPAP-089": "26-33, 98-100",
+    "HPAP-092": "50-74",
+    "HPAP-107": "67-75, 96-99",
+    "HPAP-122": "1-15",
+    "HPAP-123": "51-75",
+    "HPAP-129": "66-105",
+    "HPAP-131": "16-40",
+    "HPAP-140": "41-65",
+    "HPAP-148": "75-99",
+    "HPAP-149": "1-25"
 
 ### 4.2 Genes
 
-We have these 958 genes (used in fov_image and gene_expression):
-
-AATK, ABL1, ABL2, ACACB, ACE, ACKR1, ACKR3, ACKR4, ACTA2, ACTG2, ACVR1, ACVR1B, ACVR2A, ACVRL1, ADGRA2, ADGRA3, ADGRE2, ADGRE5, ADGRF1, ADGRF3, ADGRF5, ADGRG1, ADGRG3, ADGRG5, ADGRG6, ADGRL1, ADGRL2, ADGRL4, ADGRV1, ADIPOQ, ADIRF, ADM2, AGER, AGR2, AHI1, AHR, AIF1, AKT1, ALCAM, ANGPT1, ANGPT2, ANGPTL1, ANKRD1, ANXA1, ANXA2, ANXA4, APOA1, APOC1, APOD, APOE, APP, AQP3, AR, AREG, ARF1, ARG1, ARHGDIB, ARID5B, ATF3, ATG10, ATG12, ATG5, ATM, ATP5F1E, ATR, AXL, AZGP1, AZU1, B2M, B3GNT7, BAG3, BAX, BBLN, BCL2, BCL2L1, BECN1, BEST1, BGN, BID, BIRC5, BMP1, BMP2, BMP3, BMP4, BMP5, BMP7, BMPR1A, BMPR2, BRCA1, BST1, BST2, BTF3, BTG1, BTK, C11orf96, C1QA, C1QB, C1QC, C5AR2, CACNA1C, CALB1, CALD1, CALM1, CALM2, CALM3, CAMP, CARMN, CASP3, CASP8, CASR, CAV1, CCL11, CCL13, CCL15, CCL18, CCL19, CCL2, CCL20, CCL21, CCL26, CCL28, CCL3/L1/L3, CCL4/L1/L2, CCL5, CCL8, CCND1, CCR1, CCR10, CCR2, CCR5, CCR7, CCRL2, CD14, CD163, CD164, CD19, CD2, CD209, CD24, CD27, CD274, CD276, CD28, CD300A, CD33, CD34, CD36, CD37, CD38, CD3D, CD3E, CD3G, CD4, CD40, CD40LG, CD44, CD47, CD48, CD52, CD53, CD55, CD58, CD59, CD5L, CD63, CD68, CD69, CD70, CD74, CD79A, CD80, CD81, CD83, CD84, CD86, CD8A, CD8B, CD9, CDH1, CDH11, CDH19, CDH5, CDKN1A, CDKN3, CEACAM1, CEACAM6, CELSR1, CELSR2, CENPF, CFD, CFLAR, CHEK1, CHEK2, CHI3L1, CIDEA, CIITA, CLCF1, CLDN4, CLEC10A, CLEC12A, CLEC14A, CLEC1A, CLEC2B, CLEC2D, CLEC4A, CLEC4D, CLEC4E, CLEC5A, CLEC7A, CLOCK, CLU, CMKLR1, CNTFR, COL11A1, COL12A1, COL14A1, COL15A1, COL16A1, COL17A1, COL18A1, COL1A1, COL1A2, COL21A1, COL27A1, COL3A1, COL4A1, COL4A2, COL4A5, COL5A1, COL5A2, COL5A3, COL6A1, COL6A2, COL6A3, COL8A1, COL9A2, COL9A3, COTL1, CPA3, CPB1, CRIP1, CRP, CRYAB, CSF1, CSF1R, CSF2, CSF2RA, CSF2RB, CSF3, CSF3R, CSHL1, CSK, CST7, CTLA4, CTNNB1, CTSG, CTSW, CUZD1, CX3CL1, CX3CR1, CXCL1/2/3, CXCL10, CXCL12, CXCL14, CXCL16, CXCL17, CXCL5, CXCL8, CXCL9, CXCR1, CXCR2, CXCR3, CXCR4, CXCR5, CXCR6, CYP1B1, CYP2U1, CYSTM1, CYTOR, DCN, DDC, DDIT3, DDR1, DDR2, DDX58, DHRS2, DLL1, DLL4, DMBT1, DNMT1, DNMT3A, DPP4, DST, DUSP1, DUSP2, DUSP4, DUSP5, DUSP6, EFNA1, EFNA4, EFNA5, EFNB1, EFNB2, EGF, EGFR, EIF5A/L1, ELANE, EMP3, ENG, ENO1, ENTPD1, EOMES, EPCAM, EPHA2, EPHA3, EPHA4, EPHA7, EPHB2, EPHB3, EPHB4, EPHB6, EPOR, ERBB2, ERBB3, ESAM, ESR1, ETS1, ETV4, ETV5, EZH2, EZR, FABP4, FABP5, FAM30A, FAS, FASLG, FASN, FAU, FCER1G, FCGBP, FCGR3A/B, FCRLA, FES, FFAR2, FFAR3, FFAR4, FGF1, FGF12, FGF13, FGF18, FGF2, FGF7, FGF9, FGFR1, FGFR2, FGFR3, FGG, FGR, FHIT, FKBP11, FKBP5, FLT1, FLT3LG, FN1, FOS, FOXF1, FOXP3, FPR1, FYB1, FYN, FZD1, FZD3, FZD4, FZD5, FZD6, FZD7, FZD8, G6PD, GADD45B, GAS6, GATA3, GC, GCG, GDF15, GLUD1, GLUL, GNLY, GPBAR1, GPER1, GPNMB, GPR183, GPX1, GPX3, GSN, GSTP1, GZMA, GZMB, GZMH, GZMK, H2AZ1, H4C3, HAVCR2, HBA1/2, HBB, HCAR2/3, HCK, HCST, HDAC1, HDAC11, HDAC3, HDAC4, HDAC5, HEY1, HGF, HIF1A, HILPDA, HLA-DPA1, HLA-DPB1, HLA-DQA1, HLA-DQB1/2, HLA-DRA, HLA-DRB, HMGB2, HMGN2, HPGDS, HSD17B2, HSP90AA1, HSP90AB1, HSP90B1, HSPA1A/B, HSPB1, HTT, IAPP, ICA1, ICAM1, ICAM2, ICAM3, ICOS, ICOSLG, IDO1, IER3, IFI27, IFI44L, IFIH1, IFIT1, IFIT3, IFITM1, IFITM3, IFNA1/13, IFNAR1, IFNAR2, IFNG, IFNGR1, IFNGR2, IFNL2/3, IGF1, IGF1R, IGF2, IGF2R, IGFBP3, IGFBP5, IGFBP6, IGFBP7, IGHA1, IGHD, IGHG1, IGHG2, IGHM, IGKC, IKZF3, IL10, IL10RA, IL10RB, IL11, IL11RA, IL12A, IL12B, IL12RB1, IL12RB2, IL13RA1, IL15, IL15RA, IL16, IL17A, IL17B, IL17D, IL17RA, IL17RB, IL17RE, IL18, IL18R1, IL1A, IL1B, IL1R1, IL1R2, IL1RAP, IL1RL1, IL1RN, IL2, IL20, IL20RA, IL22RA1, IL23A, IL24, IL27RA, IL2RA, IL2RB, IL2RG, IL32, IL33, IL34, IL36G, IL3RA, IL4R, IL6, IL6R, IL6ST, IL7, IL7R, INHA, INHBA, INHBB, INS, INSR, IRF3, IRF4, ITGA1, ITGA2, ITGA3, ITGA5, ITGA6, ITGA8, ITGA9, ITGAE, ITGAL, ITGAM, ITGAV, ITGAX, ITGB1, ITGB2, ITGB4, ITGB5, ITGB6, ITGB8, ITK, ITM2A, JAG1, JAK1, JAK2, JCHAIN, JUN, JUNB, KDR, KIT, KITLG, KLF2, KLK3, KLRB1, KLRF1, KLRK1, KRAS, KRT1, KRT10, KRT13, KRT14, KRT15, KRT16, KRT17, KRT18, KRT19, KRT20, KRT23, KRT4, KRT5, KRT6A/B/C, KRT7, KRT8, KRT80, KRT86, LAG3, LAIR1, LAMP2, LAMP3, LCN2, LDB2, LDHA, LDLR, LEFTY1, LEP, LGALS1, LGALS3, LGALS3BP, LGALS9, LGR5, LIF, LIFR, LINC01781, LINC01857, LINC02446, LMNA, LMNB1, LPAR5, LTB, LTBR, LTF, LUM, LY6D, LY75, LYN, LYZ, MAF, MALAT1, MAML2, MAP1LC3B/2, MAPK13, MAPK14, MARCO, MB, MECOM, MEG3, MERTK, MET, MFAP5, MGP, MHC I, MIF, MIR4435-2HG, MKI67, MMP1, MMP12, MMP14, MMP19, MMP2, MMP7, MMP9, MPO, MRC1, MRC2, MS4A1, MS4A4A, MS4A6A, MSMB, MSR1, MST1R, MT1X, MT2A, MTOR, MUC5AC, MX1, MXRA8, MYC, MYH11, MYH6, MYL12A, MYL4, MYL7, MYL9, MZB1, MZT2A/B, NACA, NANOG, NCR1, NDRG1, NEAT1, NELL2, NFKB1, NFKBIA, NGFR, NKG7, NLRC4, NLRC5, NLRP1, NLRP2, NLRP3, NOD2, NOSIP, NOTCH1, NOTCH2, NOTCH3, NPPC, NPR1, NPR2, NPR3, NR1H2, NR1H3, NR3C1, NRG1, NRXN1, NRXN3, NTRK2, NUSAP1, OAS1, OAS2, OAS3, OASL, OLFM4, OLR1, OSM, OSMR, P2RX5, PARP1, PCNA, PDCD1, PDCD1LG2, PDGFA, PDGFB, PDGFC, PDGFD, PDGFRA, PDGFRB, PDS5A, PECAM1, PF4/V1, PFN1, PGF, PGR, PHLDA2, PIGR, PLAC8, PLAC9, PNOC, POU5F1, PPARA, PPARD, PPARG, PPIA, PRF1, PRSS2, PRTN3, PSAP, PSCA, PSD3, PTGDR2, PTGDS, PTGES, PTGES2, PTGES3, PTGIS, PTGS1, PTGS2, PTK2, PTK6, PTPRC, PTPRCAP, PTTG1, QRFPR, RAC1, RAC2, RACK1, RAG1, RAMP1, RAMP2, RAMP3, RARA, RARB, RARG, RARRES1, RARRES2, RB1, RBM47, RBPJ, REG1A, RELA, RELT, RGCC, RGS1, RGS2, RGS5, RNF43, ROR1, RORA, RPL21, RPL22, RPL32, RPL34, RPL37, RPS4Y1, RSPO3, RUNX3, RXRA, RXRB, RYK, RYR2, S100A10, S100A2, S100A4, S100A6, S100A8, S100A9, S100B, S100P, SAA1/2, SARS-COV-2 N, SAT1, SCG5, SCGB3A1, SEC23A, SEC61G, SELENOP, SELL, SELPLG, SERPINA1, SERPINA3, SERPINB5, SERPINH1, SFN, SFTPB, SFTPC, SH3BGRL3, SIGIRR, SLC2A1, SLC40A1, SLPI, SMAD2, SMAD3, SMAD4, SMARCB1, SMO, SNAI1, SNAI2, SOD1, SOD2, SORBS1, SOSTDC1, SOX2, SOX4, SOX9, SPARCL1, SPINK1, SPOCK2, SPP1, SPRY2, SPRY4, SQSTM1, SRC, SREBF1, SRGN, SST, ST6GAL1, ST6GALNAC3, STAT1, STAT3, STAT4, STAT5A, STAT5B, STAT6, STMN1, SYK, TACSTD2, TAGLN, TAP1, TAP2, TBX21, TCAP, TCF7, TCL1A, TEK, TFEB, TGFB1, TGFB2, TGFB3, TGFBR1, TGFBR2, THBS1, THBS2, THSD4, TIE1, TIGIT, TIMP1, TLR1, TLR2, TLR3, TLR4, TLR5, TLR7, TLR8, TM4SF1, TNF, TNFAIP6, TNFRSF10A, TNFRSF10B, TNFRSF10D, TNFRSF11A, TNFRSF11B, TNFRSF12A, TNFRSF13B, TNFRSF14, TNFRSF17, TNFRSF18, TNFRSF19, TNFRSF1A, TNFRSF1B, TNFRSF21, TNFRSF4, TNFRSF9, TNFSF10, TNFSF12, TNFSF13B, TNFSF14, TNFSF15, TNFSF4, TNFSF8, TNFSF9, TNNC1, TNNT2, TNXA/B, TOP2A, TOX, TP53, TP53BP1, TPM1, TPM2, TPSAB1/B2, TPT1, TSC22D1, TSHZ2, TTN, TTR, TUBA1A, TUBB, TUBB4B, TWIST1, TWIST2, TXK, TYK2, TYMS, TYROBP, UBA52, UBE2C, UPK3A, VCAM1, VCAN, VEGFA, VEGFB, VEGFC, VEGFD, VHL, VIM, VPREB3, VSIR, VTN, VWA1, VWF, WIF1, WNT10B, WNT11, WNT3, WNT5A, WNT5B, WNT7A, WNT7B, WNT9A, XBP1, XCL1/2, XKR4, YBX3, YES1, ZFP36
-
+We have these 1000 genes (used in fov_image and gene_expression):
+    "AATK",
+    "ABL1",
+    "ABL2",
+    "ACACB",
+    "ACE",
+    "ACKR1",
+    "ACKR3",
+    "ACKR4",
+    "ACP5",
+    "ACTA2",
+    "ACTG2",
+    "ACVR1",
+    "ACVR1B",
+    "ACVR2A",
+    "ACVRL1",
+    "ADGRA2",
+    "ADGRA3",
+    "ADGRE2",
+    "ADGRE5",
+    "ADGRF1",
+    "ADGRF3",
+    "ADGRF5",
+    "ADGRG1",
+    "ADGRG3",
+    "ADGRG5",
+    "ADGRG6",
+    "ADGRL1",
+    "ADGRL2",
+    "ADGRL4",
+    "ADGRV1",
+    "ADIPOQ",
+    "ADIRF",
+    "ADM2",
+    "AGR2",
+    "AHI1",
+    "AHR",
+    "AIF1",
+    "AKT1",
+    "ALCAM",
+    "ALOX5AP",
+    "ANGPT1",
+    "ANGPT2",
+    "ANGPTL1",
+    "ANKRD1",
+    "ANXA1",
+    "ANXA2",
+    "ANXA4",
+    "APOA1",
+    "APOC1",
+    "APOD",
+    "APOE",
+    "APP",
+    "AQP3",
+    "AR",
+    "AREG",
+    "ARF1",
+    "ARG1",
+    "ARHGDIB",
+    "ARID5B",
+    "ATF3",
+    "ATG10",
+    "ATG12",
+    "ATG5",
+    "ATM",
+    "ATP5F1B",
+    "ATP5F1E",
+    "ATR",
+    "AXL",
+    "AZGP1",
+    "AZU1",
+    "B2M",
+    "B3GNT7",
+    "BAG3",
+    "BASP1",
+    "BAX",
+    "BBLN",
+    "BCL2",
+    "BCL2L1",
+    "BECN1",
+    "BEST1",
+    "BGN",
+    "BID",
+    "BIRC3",
+    "BIRC5",
+    "BMP1",
+    "BMP2",
+    "BMP3",
+    "BMP4",
+    "BMP5",
+    "BMP7",
+    "BMPR1A",
+    "BMPR2",
+    "BRAF",
+    "BRCA1",
+    "BST1",
+    "BST2",
+    "BTF3",
+    "BTG1",
+    "BTK",
+    "C11orf96",
+    "C1QA",
+    "C1QB",
+    "C1QC",
+    "C5AR2",
+    "CACNA1C",
+    "CALB1",
+    "CALD1",
+    "CALM1",
+    "CALM2",
+    "CALM3",
+    "CAMP",
+    "CARMN",
+    "CASP3",
+    "CASP8",
+    "CASR",
+    "CAV1",
+    "CCDC80",
+    "CCL11",
+    "CCL13",
+    "CCL15",
+    "CCL17",
+    "CCL18",
+    "CCL19",
+    "CCL2",
+    "CCL20",
+    "CCL21",
+    "CCL22",
+    "CCL26",
+    "CCL28",
+    "CCL3/L1/L3",
+    "CCL4/L1/L2",
+    "CCL5",
+    "CCL8",
+    "CCND1",
+    "CCR1",
+    "CCR10",
+    "CCR2",
+    "CCR5",
+    "CCR7",
+    "CCRL2",
+    "CD14",
+    "CD163",
+    "CD164",
+    "CD19",
+    "CD1C",
+    "CD2",
+    "CD209",
+    "CD22",
+    "CD24",
+    "CD27",
+    "CD274",
+    "CD276",
+    "CD28",
+    "CD300A",
+    "CD33",
+    "CD34",
+    "CD36",
+    "CD37",
+    "CD38",
+    "CD3D",
+    "CD3E",
+    "CD3G",
+    "CD4",
+    "CD40",
+    "CD40LG",
+    "CD44",
+    "CD47",
+    "CD48",
+    "CD52",
+    "CD53",
+    "CD55",
+    "CD58",
+    "CD59",
+    "CD5L",
+    "CD63",
+    "CD68",
+    "CD69",
+    "CD70",
+    "CD74",
+    "CD79A",
+    "CD80",
+    "CD81",
+    "CD83",
+    "CD84",
+    "CD86",
+    "CD8A",
+    "CD8B",
+    "CD9",
+    "CD93",
+    "CDH1",
+    "CDH11",
+    "CDH19",
+    "CDH5",
+    "CDKN1A",
+    "CDKN3",
+    "CEACAM1",
+    "CEACAM6",
+    "CELSR1",
+    "CELSR2",
+    "CENPF",
+    "CFD",
+    "CFLAR",
+    "CHEK1",
+    "CHEK2",
+    "CHI3L1",
+    "CIDEA",
+    "CIITA",
+    "CLCF1",
+    "CLDN4",
+    "CLEC10A",
+    "CLEC12A",
+    "CLEC14A",
+    "CLEC1A",
+    "CLEC2B",
+    "CLEC2D",
+    "CLEC4A",
+    "CLEC4D",
+    "CLEC4E",
+    "CLEC5A",
+    "CLEC7A",
+    "CLOCK",
+    "CLU",
+    "CMKLR1",
+    "CNTFR",
+    "COL11A1",
+    "COL12A1",
+    "COL14A1",
+    "COL15A1",
+    "COL16A1",
+    "COL17A1",
+    "COL18A1",
+    "COL1A1",
+    "COL1A2",
+    "COL21A1",
+    "COL27A1",
+    "COL3A1",
+    "COL4A1",
+    "COL4A2",
+    "COL4A5",
+    "COL5A1",
+    "COL5A2",
+    "COL5A3",
+    "COL6A1",
+    "COL6A2",
+    "COL6A3",
+    "COL8A1",
+    "COL9A2",
+    "COL9A3",
+    "COTL1",
+    "COX4I2",
+    "CPA3",
+    "CPB1",
+    "CRIP1",
+    "CRP",
+    "CRYAB",
+    "CSF1",
+    "CSF1R",
+    "CSF2",
+    "CSF2RA",
+    "CSF2RB",
+    "CSF3",
+    "CSF3R",
+    "CSHL1",
+    "CSK",
+    "CSPG4",
+    "CST7",
+    "CSTB",
+    "CTLA4",
+    "CTNNB1",
+    "CTSD",
+    "CTSG",
+    "CTSW",
+    "CUZD1",
+    "CX3CL1",
+    "CX3CR1",
+    "CXCL1/2/3",
+    "CXCL10",
+    "CXCL12",
+    "CXCL13",
+    "CXCL14",
+    "CXCL16",
+    "CXCL17",
+    "CXCL5",
+    "CXCL8",
+    "CXCL9",
+    "CXCR1",
+    "CXCR2",
+    "CXCR3",
+    "CXCR4",
+    "CXCR5",
+    "CXCR6",
+    "CYP1B1",
+    "CYP2U1",
+    "CYSTM1",
+    "CYTOR",
+    "DCN",
+    "DDC",
+    "DDIT3",
+    "DDR1",
+    "DDR2",
+    "DDX58",
+    "DHRS2",
+    "DLL1",
+    "DLL4",
+    "DMBT1",
+    "DNMT1",
+    "DNMT3A",
+    "DPP4",
+    "DPT",
+    "DST",
+    "DUSP1",
+    "DUSP2",
+    "DUSP4",
+    "DUSP5",
+    "DUSP6",
+    "EFNA1",
+    "EFNA4",
+    "EFNA5",
+    "EFNB1",
+    "EFNB2",
+    "EGF",
+    "EGFR",
+    "EIF5A/L1",
+    "ELANE",
+    "EMP3",
+    "ENG",
+    "ENO1",
+    "ENTPD1",
+    "EOMES",
+    "EPCAM",
+    "EPHA2",
+    "EPHA3",
+    "EPHA4",
+    "EPHA7",
+    "EPHB2",
+    "EPHB3",
+    "EPHB4",
+    "EPHB6",
+    "EPOR",
+    "ERBB2",
+    "ERBB3",
+    "ESAM",
+    "ESR1",
+    "ETS1",
+    "ETV4",
+    "ETV5",
+    "EZH2",
+    "EZR",
+    "FABP4",
+    "FABP5",
+    "FAM30A",
+    "FAP",
+    "FAS",
+    "FASLG",
+    "FASN",
+    "FAU",
+    "FCER1G",
+    "FCGBP",
+    "FCGR3A/B",
+    "FCRLA",
+    "FES",
+    "FFAR2",
+    "FFAR3",
+    "FFAR4",
+    "FGF1",
+    "FGF12",
+    "FGF13",
+    "FGF18",
+    "FGF2",
+    "FGF7",
+    "FGF9",
+    "FGFR1",
+    "FGFR2",
+    "FGFR3",
+    "FGG",
+    "FGR",
+    "FHIT",
+    "FKBP11",
+    "FKBP5",
+    "FLT1",
+    "FLT3LG",
+    "FN1",
+    "FOS",
+    "FOXF1",
+    "FOXP3",
+    "FPR1",
+    "FYB1",
+    "FYN",
+    "FZD1",
+    "FZD3",
+    "FZD4",
+    "FZD5",
+    "FZD6",
+    "FZD7",
+    "FZD8",
+    "G0S2",
+    "G6PD",
+    "GADD45B",
+    "GAS6",
+    "GATA3",
+    "GC",
+    "GCG",
+    "GDF15",
+    "GLUD1",
+    "GLUL",
+    "GNLY",
+    "GPBAR1",
+    "GPER1",
+    "GPNMB",
+    "GPR183",
+    "GPX1",
+    "GPX3",
+    "GSK3B",
+    "GSN",
+    "GSTP1",
+    "GZMA",
+    "GZMB",
+    "GZMH",
+    "GZMK",
+    "H2AZ1",
+    "H4C3",
+    "HAVCR2",
+    "HBA1/2",
+    "HBB",
+    "HCAR2/3",
+    "HCK",
+    "HCST",
+    "HDAC1",
+    "HDAC11",
+    "HDAC3",
+    "HDAC4",
+    "HDAC5",
+    "HEXB",
+    "HEY1",
+    "HGF",
+    "HIF1A",
+    "HILPDA",
+    "HLA-DPA1",
+    "HLA-DPB1",
+    "HLA-DQA1",
+    "HLA-DQB1/2",
+    "HLA-DRA",
+    "HLA-DRB",
+    "HMGB2",
+    "HMGCS1",
+    "HMGN2",
+    "HPGDS",
+    "HSD17B2",
+    "HSP90AA1",
+    "HSP90AB1",
+    "HSP90B1",
+    "HSPA1A/B",
+    "HSPB1",
+    "HSPG2",
+    "HTT",
+    "IAPP",
+    "ICA1",
+    "ICAM1",
+    "ICAM2",
+    "ICAM3",
+    "ICOS",
+    "ICOSLG",
+    "IDO1",
+    "IER3",
+    "IFI27",
+    "IFI44L",
+    "IFI6",
+    "IFIH1",
+    "IFIT1",
+    "IFIT3",
+    "IFITM1",
+    "IFITM3",
+    "IFNA1/13",
+    "IFNAR1",
+    "IFNAR2",
+    "IFNG",
+    "IFNGR1",
+    "IFNGR2",
+    "IFNL2/3",
+    "IGF1",
+    "IGF1R",
+    "IGF2",
+    "IGF2R",
+    "IGFBP3",
+    "IGFBP5",
+    "IGFBP6",
+    "IGFBP7",
+    "IGHA1",
+    "IGHD",
+    "IGHG1",
+    "IGHG2",
+    "IGHM",
+    "IGKC",
+    "IKZF3",
+    "IL10",
+    "IL10RA",
+    "IL10RB",
+    "IL11",
+    "IL11RA",
+    "IL12A",
+    "IL12B",
+    "IL12RB1",
+    "IL12RB2",
+    "IL13RA1",
+    "IL15",
+    "IL15RA",
+    "IL16",
+    "IL17A",
+    "IL17B",
+    "IL17D",
+    "IL17RA",
+    "IL17RB",
+    "IL17RE",
+    "IL18",
+    "IL18R1",
+    "IL1A",
+    "IL1B",
+    "IL1R1",
+    "IL1R2",
+    "IL1RAP",
+    "IL1RL1",
+    "IL1RN",
+    "IL2",
+    "IL20",
+    "IL20RA",
+    "IL22RA1",
+    "IL23A",
+    "IL24",
+    "IL27RA",
+    "IL2RA",
+    "IL2RB",
+    "IL2RG",
+    "IL32",
+    "IL33",
+    "IL34",
+    "IL36G",
+    "IL3RA",
+    "IL4R",
+    "IL6",
+    "IL6R",
+    "IL6ST",
+    "IL7",
+    "IL7R",
+    "INHA",
+    "INHBA",
+    "INHBB",
+    "INS",
+    "INSIG1",
+    "INSR",
+    "IRF3",
+    "IRF4",
+    "ISG15",
+    "ITGA1",
+    "ITGA2",
+    "ITGA3",
+    "ITGA5",
+    "ITGA6",
+    "ITGA8",
+    "ITGA9",
+    "ITGAE",
+    "ITGAL",
+    "ITGAM",
+    "ITGAV",
+    "ITGAX",
+    "ITGB1",
+    "ITGB2",
+    "ITGB4",
+    "ITGB5",
+    "ITGB6",
+    "ITGB8",
+    "ITK",
+    "ITM2A",
+    "ITM2B",
+    "JAG1",
+    "JAK1",
+    "JAK2",
+    "JCHAIN",
+    "JUN",
+    "JUNB",
+    "KDR",
+    "KIT",
+    "KITLG",
+    "KLF2",
+    "KLK3",
+    "KLRB1",
+    "KLRF1",
+    "KLRK1",
+    "KRAS",
+    "KRT1",
+    "KRT10",
+    "KRT13",
+    "KRT14",
+    "KRT15",
+    "KRT16",
+    "KRT17",
+    "KRT18",
+    "KRT19",
+    "KRT20",
+    "KRT23",
+    "KRT4",
+    "KRT5",
+    "KRT6A/B/C",
+    "KRT7",
+    "KRT8",
+    "KRT80",
+    "KRT86",
+    "LAG3",
+    "LAIR1",
+    "LAMA4",
+    "LAMP2",
+    "LAMP3",
+    "LCN2",
+    "LDB2",
+    "LDHA",
+    "LDLR",
+    "LEFTY1",
+    "LEP",
+    "LGALS1",
+    "LGALS3",
+    "LGALS3BP",
+    "LGALS9",
+    "LGR5",
+    "LIF",
+    "LIFR",
+    "LINC01781",
+    "LINC01857",
+    "LINC02446",
+    "LMNA",
+    "LPAR5",
+    "LTB",
+    "LTBR",
+    "LTF",
+    "LUM",
+    "LY6D",
+    "LY75",
+    "LYN",
+    "LYVE1",
+    "LYZ",
+    "MAF",
+    "MALAT1",
+    "MAML2",
+    "MAP1LC3B/2",
+    "MAP2K1",
+    "MAPK13",
+    "MAPK14",
+    "MARCKSL1",
+    "MARCO",
+    "MB",
+    "MECOM",
+    "MEG3",
+    "MERTK",
+    "MET",
+    "MFAP5",
+    "MGP",
+    "MHC I",
+    "MIF",
+    "MIR4435-2HG",
+    "MKI67",
+    "MMP1",
+    "MMP12",
+    "MMP14",
+    "MMP19",
+    "MMP2",
+    "MMP7",
+    "MMP9",
+    "MPO",
+    "MRC1",
+    "MRC2",
+    "MS4A1",
+    "MS4A4A",
+    "MS4A6A",
+    "MSMB",
+    "MSR1",
+    "MST1R",
+    "MT1X",
+    "MT2A",
+    "MTOR",
+    "MX1",
+    "MXRA8",
+    "MYC",
+    "MYH11",
+    "MYH6",
+    "MYL12A",
+    "MYL4",
+    "MYL7",
+    "MYL9",
+    "MZB1",
+    "MZT2A/B",
+    "NACA",
+    "NANOG",
+    "NCAM1",
+    "NCR1",
+    "NDRG1",
+    "NDUFA4L2",
+    "NEAT1",
+    "NELL2",
+    "NFKB1",
+    "NFKBIA",
+    "NGFR",
+    "NKG7",
+    "NLRC4",
+    "NLRC5",
+    "NLRP1",
+    "NLRP2",
+    "NLRP3",
+    "NOD2",
+    "NOSIP",
+    "NOTCH1",
+    "NOTCH2",
+    "NOTCH3",
+    "NPPC",
+    "NPR1",
+    "NPR2",
+    "NPR3",
+    "NR1H2",
+    "NR1H3",
+    "NR2F2",
+    "NR3C1",
+    "NRG1",
+    "NRXN1",
+    "NRXN3",
+    "NTRK2",
+    "NUPR1",
+    "NUSAP1",
+    "OAS1",
+    "OAS2",
+    "OAS3",
+    "OASL",
+    "OLFM4",
+    "OLR1",
+    "OSM",
+    "OSMR",
+    "P2RX5",
+    "PARP1",
+    "PCNA",
+    "PDCD1",
+    "PDCD1LG2",
+    "PDGFA",
+    "PDGFB",
+    "PDGFC",
+    "PDGFD",
+    "PDGFRA",
+    "PDGFRB",
+    "PDS5A",
+    "PECAM1",
+    "PF4/V1",
+    "PFN1",
+    "PGF",
+    "PGK1",
+    "PGR",
+    "PHLDA2",
+    "PIGR",
+    "PLAC8",
+    "PLAC9",
+    "PLCG1",
+    "PLD3",
+    "PNOC",
+    "POU5F1",
+    "PPARA",
+    "PPARD",
+    "PPARG",
+    "PPIA",
+    "PRF1",
+    "PROX1",
+    "PRSS2",
+    "PRTN3",
+    "PSAP",
+    "PSCA",
+    "PSD3",
+    "PTEN",
+    "PTGDR2",
+    "PTGDS",
+    "PTGES",
+    "PTGES2",
+    "PTGES3",
+    "PTGIS",
+    "PTGS1",
+    "PTGS2",
+    "PTK2",
+    "PTK6",
+    "PTPRC",
+    "PTPRCAP",
+    "PTTG1",
+    "PXDN",
+    "QRFPR",
+    "RAC1",
+    "RAC2",
+    "RACK1",
+    "RAG1",
+    "RAMP1",
+    "RAMP2",
+    "RAMP3",
+    "RARA",
+    "RARB",
+    "RARG",
+    "RARRES1",
+    "RARRES2",
+    "RB1",
+    "RBM47",
+    "RBPJ",
+    "REG1A",
+    "RELA",
+    "RELT",
+    "RGCC",
+    "RGS1",
+    "RGS13",
+    "RGS2",
+    "RGS5",
+    "RNF43",
+    "ROR1",
+    "RORA",
+    "RPL21",
+    "RPL22",
+    "RPL32",
+    "RPL34",
+    "RPL37",
+    "RPS4Y1",
+    "RSPO3",
+    "RUNX3",
+    "RXRA",
+    "RXRB",
+    "RYK",
+    "RYR2",
+    "S100A10",
+    "S100A2",
+    "S100A4",
+    "S100A6",
+    "S100A8",
+    "S100A9",
+    "S100B",
+    "S100P",
+    "SAA1/2",
+    "SAT1",
+    "SCG5",
+    "SCGB3A1",
+    "SEC23A",
+    "SEC61G",
+    "SELENOP",
+    "SELL",
+    "SELPLG",
+    "SERPINA1",
+    "SERPINA3",
+    "SERPINB5",
+    "SERPINH1",
+    "SFN",
+    "SH3BGRL3",
+    "SIGIRR",
+    "SLA",
+    "SLC2A1",
+    "SLC40A1",
+    "SLCO2B1",
+    "SLPI",
+    "SMAD2",
+    "SMAD3",
+    "SMAD4",
+    "SMARCB1",
+    "SMO",
+    "SNAI1",
+    "SNAI2",
+    "SOD1",
+    "SOD2",
+    "SORBS1",
+    "SOSTDC1",
+    "SOX2",
+    "SOX4",
+    "SOX9",
+    "SPARCL1",
+    "SPINK1",
+    "SPOCK2",
+    "SPP1",
+    "SPRY2",
+    "SPRY4",
+    "SQLE",
+    "SQSTM1",
+    "SRC",
+    "SREBF1",
+    "SRGN",
+    "SRSF2",
+    "SST",
+    "ST6GAL1",
+    "ST6GALNAC3",
+    "STAT1",
+    "STAT3",
+    "STAT4",
+    "STAT5A",
+    "STAT5B",
+    "STAT6",
+    "STMN1",
+    "SYK",
+    "TACSTD2",
+    "TAGLN",
+    "TAP1",
+    "TAP2",
+    "TBX21",
+    "TCAP",
+    "TCF7",
+    "TCL1A",
+    "TEK",
+    "TFEB",
+    "TGFB1",
+    "TGFB2",
+    "TGFB3",
+    "TGFBI",
+    "TGFBR1",
+    "TGFBR2",
+    "THBS1",
+    "THBS2",
+    "THSD4",
+    "TIE1",
+    "TIGIT",
+    "TIMP1",
+    "TLR1",
+    "TLR2",
+    "TLR3",
+    "TLR4",
+    "TLR5",
+    "TLR7",
+    "TLR8",
+    "TM4SF1",
+    "TNF",
+    "TNFAIP6",
+    "TNFRSF10A",
+    "TNFRSF10B",
+    "TNFRSF10D",
+    "TNFRSF11A",
+    "TNFRSF11B",
+    "TNFRSF12A",
+    "TNFRSF13B",
+    "TNFRSF14",
+    "TNFRSF17",
+    "TNFRSF18",
+    "TNFRSF19",
+    "TNFRSF1A",
+    "TNFRSF1B",
+    "TNFRSF21",
+    "TNFRSF4",
+    "TNFRSF9",
+    "TNFSF10",
+    "TNFSF12",
+    "TNFSF13B",
+    "TNFSF14",
+    "TNFSF15",
+    "TNFSF4",
+    "TNFSF8",
+    "TNFSF9",
+    "TNNC1",
+    "TNNT2",
+    "TNXA/B",
+    "TOP2A",
+    "TOX",
+    "TP53",
+    "TPI1",
+    "TPM1",
+    "TPM2",
+    "TPSAB1/B2",
+    "TPT1",
+    "TSC22D1",
+    "TSHZ2",
+    "TTN",
+    "TTR",
+    "TUBB",
+    "TUBB4B",
+    "TWIST1",
+    "TWIST2",
+    "TXK",
+    "TYK2",
+    "TYMS",
+    "TYROBP",
+    "UBA52",
+    "UBE2C",
+    "UPK3A",
+    "VCAM1",
+    "VCAN",
+    "VEGFA",
+    "VEGFB",
+    "VEGFC",
+    "VEGFD",
+    "VHL",
+    "VIM",
+    "VPREB3",
+    "VSIR",
+    "VTN",
+    "VWA1",
+    "VWF",
+    "WIF1",
+    "WNT10B",
+    "WNT11",
+    "WNT3",
+    "WNT5A",
+    "WNT5B",
+    "WNT7A",
+    "WNT7B",
+    "WNT9A",
+    "XBP1",
+    "XCL1/2",
+    "XKR4",
+    "YBX3",
+    "YES1",
+    "ZBTB16",
+    "ZFP36"
 
 ## 5. User Input and Error Handling
 
@@ -284,56 +1251,6 @@ def check_format(resp: str) -> Tuple[bool, str]:
         if (func_name not in ['fov_image', 'gene_expression', 'enrichment', 'differential_exp', 'umap_cell_composition']):
             err_msg += f'Function name "{func_name}" not found, only has: fov_image, gene_expression, enrichment, differential_exp. '
             continue
-        if (func_name == 'enrichment'):
-            if (len(parameters) != 2):
-                err_msg += f'Function {func_name} must receive exactly 2 parameters, note that optional arguments must also be provided. '
-                continue
-            if (type(parameters[0]) != str):
-                err_msg += f'In function {func_name}, pathway must be str. '
-            if (type(parameters[1]) != str):
-                err_msg += f'In function {func_name}, cell_type must be str. '
-            if (type(parameters[0]) != str or type(parameters[1]) != str):
-                continue
-            pathway = parameters[0]
-            cell_type = parameters[1]
-            allowed_pathways = ['Pro-inflammatory', 'Senescence', 'Senescence-associated secretory phenotype (SASP)', 'Profibrotic Geneset']
-            pathway_loc = find_after_format(allowed_pathways, pathway)
-            if (pathway_loc == -1):
-                err_msg += f'In function {func_name}, pathway "{pathway}" not found, only has: "Pro-inflammatory", "Senescence", "Senescence-associated secretory phenotype (SASP)", "Profibrotic Geneset". '
-                continue
-            if (pathway_loc == 0):
-                allowed_cell_types = ['Macrophage', 'Monocyte']
-                cell_type_loc = find_after_format(allowed_cell_types, cell_type)
-                if (cell_type_loc == -1):
-                    err_msg += f'In function {func_name}, cell type "{cell_type}" not found, pathway "{pathway}" only has: "Fibroblast", "Smooth muscle cell". '
-            elif (pathway_loc in [3, 4]):
-                allowed_cell_types = ['Fibroblast', 'Smooth muscle cell']
-                cell_type_loc = find_after_format(allowed_cell_types, cell_type)
-                if (cell_type_loc == -1):
-                    err_msg += f'In function {func_name}, cell type "{cell_type}" not found, pathway "{pathway}" only has: "Fibroblast", "Smooth muscle cell". '
-            else:
-                allowed_cell_types = ['Endothelial cell', 'Alveolar type II cell', 'Alveolar type I cell', 'Basal cell']
-                cell_type_loc = find_after_format(allowed_cell_types, cell_type)
-                if (cell_type_loc == -1):
-                    err_msg += f'In function {func_name}, cell type "{cell_type}" not found, pathway "{pathway}" only has: "Endothelial cell", "Alveolar type II cell", "Alveolar type I cell", "Basal cell". '
-        if (func_name == 'differential_exp'):
-            if (len(parameters) != 2):
-                err_msg += f'Function {func_name} must receive exactly 2 parameters, note that optional arguments must also be provided. '
-                continue
-            if (type(parameters[0]) != str):
-                err_msg += f'In function {func_name}, cell_type must be str. '
-            if (type(parameters[1]) != str):
-                err_msg += f'In function {func_name}, condition must be str. '
-            if (type(parameters[0]) != str or type(parameters[1]) != str):
-                continue
-            cell_type = parameters[0]
-            condition = parameters[1]
-            allowed_cell_types = ["Lymphoid cell_1", "Macrophage", "Fibroblast", "Smooth muscle cell", "Endothelial cell", "Alveolar type II cell", "Monocyte", "Plasma cell", "Red blood cell", "Lymphoid cell_2", "Alveolar type I cell", "Basal cell", "Neutrophil", "Unknown"]
-            allowed_conditions = ["COVID-A v.s. non-COVID", "COVID-E v.s. non-COVID"]
-            if (find_after_format(allowed_cell_types, cell_type) == -1):
-                err_msg += f'In function {func_name}, cell type "{cell_type}" not found, only has: "Lymphoid cell_1", "Macrophage", "Fibroblast", "Smooth muscle cell", "Endothelial cell", "Alveolar type II cell", "Monocyte", "Plasma cell", "Red blood cell", "Lymphoid cell_2", "Alveolar type I cell", "Basal cell", "Neutrophil", "Unknown". '
-            if (find_after_format(allowed_conditions, condition) == -1):
-                err_msg += f'In function {func_name}, condition "{condition}" not found, only has: "COVID-A v.s. non-COVID", "COVID-E v.s. non-COVID". '
         if (func_name == 'gene_expression'):
             if (len(parameters) != 2):
                 err_msg += f'Function {func_name} must receive exactly 2 parameters, note that optional arguments must also be provided. '
@@ -348,10 +1265,12 @@ def check_format(resp: str) -> Tuple[bool, str]:
                 err_msg += f'In function {func_name}, genes cannot be empty. '
             if (len(parameters[1]) == 0):
                 err_msg += f'In function {func_name}, cell_types cannot be empty. '
-            allowed_cell_types = ["Lymphoid cell_1", "Macrophage", "Fibroblast", "Smooth muscle cell", "Endothelial cell", "Alveolar type II cell", "Monocyte", "Plasma cell", "Red blood cell", "Lymphoid cell_2", "Alveolar type I cell", "Basal cell", "Neutrophil", "Unknown"]
+            allowed_cell_types = ["Acinar", "Alpha", "Beta", "Delta", "Ductal", "Endothelial", "Mesenchymal",
+                                "B cells",  "Dendritic cells", "Macrophages", "Monocytes", "Granulocytes", 
+                                "NK cells", "Pre-B cells", "T cells",  "Unknown"]
             for cell_type in parameters[1]:
                 if (find_after_format(allowed_cell_types, cell_type) == -1):
-                    err_msg += f'In function {func_name}, cell type "{cell_type}" not found, only has: "Lymphoid cell_1", "Macrophage", "Fibroblast", "Smooth muscle cell", "Endothelial cell", "Alveolar type II cell", "Monocyte", "Plasma cell", "Red blood cell", "Lymphoid cell_2", "Alveolar type I cell", "Basal cell", "Neutrophil", "Unknown". '
+                    err_msg += f'In function {func_name}, cell type "{cell_type}" not found, only has: "Acinar", "Alpha", "Beta", "Delta", "Ductal", "Endothelial", "Mesenchymal","B cells",  "Dendritic cells", "Macrophages", "Monocytes", "Granulocytes", "NK cells", "Pre-B cells", "T cells",  "Unknown". '
             for gene in parameters[0]:
                 if (format_str(gene) not in GENES_AI_FORMATTED_TO_ORIGIN):
                     err_msg += f'In function {func_name}, gene "{gene}" not found. '
@@ -371,13 +1290,52 @@ def check_format(resp: str) -> Tuple[bool, str]:
                 err_msg += f"In function {func_name}, genes can only have at most 3 genes. "
             patient = parameters[0]
             fov = parameters[1]
-            allowed_patients = ['COVID-A_#01', 'COVID-A_#02', 'COVID-A_#03', 'COVID-A_#04', 'COVID-A_#05', 'COVID-A_#06', 'COVID-A_#07', 'COVID-A_#08', 'COVID-A_#09', 'COVID-A_#10'] + \
-                               ['COVID-E_#01', 'COVID-E_#02', 'COVID-E_#03', 'COVID-E_#04', 'COVID-E_#05', 'COVID-E_#06'] + \
-                               ['non-COVID_#01', 'non-COVID_#02', 'non-COVID_#03', 'non-COVID_#04', 'non-COVID_#05', 'non-COVID_#06']
+            allowed_patients = ["HPAP-008", "HPAP-016", "HPAP-024", "HPAP-029", "HPAP-038", "HPAP-045", "HPAP-072", "HPAP-078", "HPAP-084", "HPAP-089", "HPAP-092", "HPAP-107", "HPAP-122", "HPAP-123", "HPAP-129", "HPAP-131", "HPAP-140", "HPAP-148", "HPAP-149"]
             patient_loc = find_after_format(allowed_patients, patient)
             patient = allowed_patients[patient_loc]
-            fov_ranges = {"COVID-A_#01": ((19, 36),), "COVID-A_#02": ((73, 90),), "COVID-A_#03": ((1, 18),), "COVID-A_#04": ((55, 72),), "COVID-A_#05": ((55, 72), (109, 112)), "COVID-A_#06": ((91, 108),), "COVID-A_#07": ((67, 84),), "COVID-A_#08": ((1, 18), (103, 108)), "COVID-A_#09": ((1, 18),), "COVID-A_#10": ((55, 72),), "COVID-E_#01": ((91, 108),), "COVID-E_#02": ((73, 90),), "COVID-E_#03": ((37, 54),), "COVID-E_#04": ((85, 102),), "COVID-E_#05": ((19, 30),), "COVID-E_#06": ((37, 54),), "non-COVID_#01": ((37, 54),), "non-COVID_#02": ((19, 36),), "non-COVID_#03": ((1, 18),), "non-COVID_#04": ((19, 36),), "non-COVID_#05": ((31, 48),), "non-COVID_#06": ((49, 66),)}
-            fov_texts = {"COVID-A_#01": "19-36, S1", "COVID-A_#02": "73-90, S1", "COVID-A_#03": "1-18, S1", "COVID-A_#04": "55-72, S1", "COVID-A_#05": "55-72, 109-112, S2", "COVID-A_#06": "91-108, S2", "COVID-A_#07": "67-84, S3", "COVID-A_#08": "1-18, 103-108, S3", "COVID-A_#09": "1-18, S4", "COVID-A_#10": "55-72, S4", "COVID-E_#01": "91-108, S1", "COVID-E_#02": "73-90, S2", "COVID-E_#03": "37-54, S2", "COVID-E_#04": "85-102, S3", "COVID-E_#05": "19-30, S3", "COVID-E_#06": "37-54, S4", "non-COVID_#01": "37-54, S1", "non-COVID_#02": "19-36, S2", "non-COVID_#03": "1-18, S2", "non-COVID_#04": "19-36, S4", "non-COVID_#05": "31-48, S3", "non-COVID_#06": "49-66, S3"}
+            fov_ranges = {
+                "HPAP-008": ((1, 23), (94, 95)),
+                "HPAP-016": ((76, 93),),
+                "HPAP-024": ((29, 49),),
+                "HPAP-029": ((49, 66), (100, 100)),
+                "HPAP-038": ((24, 48),),
+                "HPAP-045": ((100, 103),),
+                "HPAP-072": ((1, 28),),
+                "HPAP-078": ((76, 97),),
+                "HPAP-084": ((34, 50),),
+                "HPAP-089": ((26, 33), (98, 100)),
+                "HPAP-092": ((50, 74),),
+                "HPAP-107": ((67, 75), (96, 99)),
+                "HPAP-122": ((1, 15),),
+                "HPAP-123": ((51, 75),),
+                "HPAP-129": ((66, 105),),
+                "HPAP-131": ((16, 40),),
+                "HPAP-140": ((41, 65),),
+                "HPAP-148": ((75, 99),),
+                "HPAP-149": ((1, 25),)
+            }
+
+            fov_texts = {
+                "HPAP-008": "1-23, 94-95",
+                "HPAP-016": "76-93",
+                "HPAP-024": "29-49",
+                "HPAP-029": "49-66, 100",
+                "HPAP-038": "24-48",
+                "HPAP-045": "100-103",
+                "HPAP-072": "1-28",
+                "HPAP-078": "76-97",
+                "HPAP-084": "34-50",
+                "HPAP-089": "26-33, 98-100",
+                "HPAP-092": "50-74",
+                "HPAP-107": "67-75, 96-99",
+                "HPAP-122": "1-15",
+                "HPAP-123": "51-75",
+                "HPAP-129": "66-105",
+                "HPAP-131": "16-40",
+                "HPAP-140": "41-65",
+                "HPAP-148": "75-99",
+                "HPAP-149": "1-25"
+            }
             fov_range = fov_ranges[patient]
             fov_in_range = False
             for fov_range_item in fov_range:
@@ -408,36 +1366,10 @@ def format_gpt_resp(resp: str) -> list:
         func_name = msg['name']
         parameters = msg['parameters']
         current = {'name': func_name}
-        if (func_name == 'enrichment'):
-            pathway = parameters[0]
-            cell_type = parameters[1]
-            allowed_pathways = ['Pro-inflammatory', 'Senescence', 'Senescence-associated secretory phenotype (SASP)', 'Profibrotic Geneset']
-            pathway_loc = find_after_format(allowed_pathways, pathway)
-            final_pathway = allowed_pathways[pathway_loc]
-            if (pathway_loc == 0):
-                allowed_cell_types = ['Macrophage', 'Monocyte']
-            elif (pathway_loc in [3, 4]):
-                allowed_cell_types = ['Fibroblast', 'Smooth muscle cell']
-            else:
-                allowed_cell_types = ['Endothelial cell', 'Alveolar type II cell', 'Alveolar type I cell', 'Basal cell']
-            cell_type_loc = find_after_format(allowed_cell_types, cell_type)
-            final_cell_type = allowed_cell_types[cell_type_loc]
-            current['parameters'] = [final_pathway, final_cell_type]
-            results.append(current)
-            continue
-        if (func_name == 'differential_exp'):
-            cell_type = parameters[0]
-            condition = parameters[1]
-            allowed_cell_types = ["Lymphoid cell_1", "Macrophage", "Fibroblast", "Smooth muscle cell", "Endothelial cell", "Alveolar type II cell", "Monocyte", "Plasma cell", "Red blood cell", "Lymphoid cell_2", "Alveolar type I cell", "Basal cell", "Neutrophil", "Unknown"]
-            allowed_conditions = ["COVID-A v.s. non-COVID", "COVID-E v.s. non-COVID"]
-            allowed_conditions_2 = ["CO v.s. H", "COE v.s. H"]
-            selected_cell_type = allowed_cell_types[find_after_format(allowed_cell_types, cell_type)]
-            selected_condition = allowed_conditions_2[find_after_format(allowed_conditions, condition)]
-            current['parameters'] = [selected_cell_type, selected_condition]
-            results.append(current)
-            continue
         if (func_name == 'gene_expression'):
-            allowed_cell_types = ["Lymphoid cell_1", "Macrophage", "Fibroblast", "Smooth muscle cell", "Endothelial cell", "Alveolar type II cell", "Monocyte", "Plasma cell", "Red blood cell", "Lymphoid cell_2", "Alveolar type I cell", "Basal cell", "Neutrophil", "Unknown"]
+            allowed_cell_types = ["Acinar", "Alpha", "Beta", "Delta", "Ductal", "Endothelial", "Mesenchymal",
+            "B cells",  "Dendritic cells", "Macrophages", "Monocytes", "Granulocytes", 
+            "NK cells", "Pre-B cells", "T cells",  "Unknown"]
             final_cell_types = []
             final_genes = []
             for cell_type in parameters[1]:
@@ -451,9 +1383,8 @@ def format_gpt_resp(resp: str) -> list:
         if (func_name == 'fov_image'):
             patient = parameters[0]
             fov = parameters[1]  # already legal
-            allowed_patients = ['COVID-A_#01', 'COVID-A_#02', 'COVID-A_#03', 'COVID-A_#04', 'COVID-A_#05', 'COVID-A_#06', 'COVID-A_#07', 'COVID-A_#08', 'COVID-A_#09', 'COVID-A_#10'] + \
-                               ['COVID-E_#01', 'COVID-E_#02', 'COVID-E_#03', 'COVID-E_#04', 'COVID-E_#05', 'COVID-E_#06'] + \
-                               ['non-COVID_#01', 'non-COVID_#02', 'non-COVID_#03', 'non-COVID_#04', 'non-COVID_#05', 'non-COVID_#06']
+            allowed_patients = ["HPAP-008", "HPAP-016", "HPAP-024", "HPAP-029", "HPAP-038", "HPAP-045", "HPAP-072", "HPAP-078", "HPAP-084", "HPAP-089", "HPAP-092", "HPAP-107", "HPAP-122", "HPAP-123", "HPAP-129", "HPAP-131", "HPAP-140", "HPAP-148", "HPAP-149"]
+
             patient_loc = find_after_format(allowed_patients, patient)
             final_patient = allowed_patients[patient_loc]
             final_genes = []
@@ -464,9 +1395,6 @@ def format_gpt_resp(resp: str) -> list:
             current['parameters'] = [final_patient, fov, final_genes]
             results.append(current)
             continue
-        if (func_name == 'umap_cell_composition'):
-            current['parameters'] = []
-            results.append(current)
     return results
 
 
@@ -526,64 +1454,9 @@ def generate_messgae(formatted_resp: list) -> str:
             messages.append({'type': 'text', 'content': msg})
             continue
         func_name = msg['name']
-        if (func_name == 'enrichment'):
-            pathway = msg['parameters'][0]
-            cell_type = msg['parameters'][1]
-            cell_type_name = {
-                'Macrophage': 'macro',
-                'Monocyte': 'Mono',
-                'Fibroblast': 'Fibroblast',
-                'Smooth muscle cell': 'SMCs',
-                'Endothelial cell': 'Endo',
-                'Alveolar type II cell': 'AT2',
-                'Alveolar type I cell': 'AT1',
-                'Basal cell': 'Basal'
-            }[cell_type]
-            final_pathway = ''
-            if (pathway.startswith('Pro-in')):
-                final_pathway = 'proinformmatory'
-            elif (pathway.startswith('Prof')):
-                final_pathway = 'pro_fibrotic'
-            elif (pathway.startswith('Anti')):
-                final_pathway = 'anti_fibrotic'
-            elif (pathway.endswith('SP)')):
-                final_pathway = 'SASP'
-            elif (pathway == 'Senescence'):
-                final_pathway = 'senescence'
-            else:
-                assert False
-            file_name = f'{final_pathway}_related_genes_in_{cell_type_name}.png'
-            url = f'$data-server-url$/new_imgs/enrich/{file_name}'
-            messages.append({'type': 'image', 'content': url})
-            continue
-        if (func_name == 'differential_exp'):
-            cell_type = msg['parameters'][0]
-            condition = msg['parameters'][1]
-            condition = 'COE' if 'COE' in condition else 'CO'
-            cell_type = {
-                'Lymphoid cell_1': 'LC1',
-                'Macrophage': 'Macro',
-                'Fibroblast': 'Fibro',
-                'Smooth muscle cell': 'SMC',
-                'Endothelial cell': 'Endo',
-                'Alveolar type II cell': 'AT2',
-                'Monocyte': 'Mono',
-                'Plasma cell': 'Plasma',
-                'Red blood cell': 'RBC',
-                'Lymphoid cell_2': 'LC2',
-                'Alveolar type I cell': 'AT1',
-                'Basal cell': 'Basal',
-                'Neutrophil': 'Nutrophil',
-                'Unknown': 'Unknown'
-            }[cell_type]
-            file_name = f'DEGs_from_{condition}_in_{cell_type}.png'
-            url = f'$data-server-url$/new_imgs/DEG/{file_name}'
-            messages.append({'type': 'image', 'content': url})
-            continue
         if (func_name == 'gene_expression'):
             genes = msg['parameters'][0]
             cell_types = msg['parameters'][1]
-            # ['0:LC-1', '1:Macro', '2:Fibro', '3:SMC', '4:Endo', '5:AT2', '6:Mono', '7:Plasma', '8:RBC', '9:LC-2', '10:AT1', '11:Basal', '12:Nutrophil', '13:Unknown']
             cell_type_to_short = {
                 'Lymphoid cell_1': '0:LC-1',
                 'Macrophage': '1:Macro',
@@ -624,11 +1497,33 @@ def generate_messgae(formatted_resp: list) -> str:
             patient = sample_shown_to_inner()[patient]
             fov = msg['parameters'][1]
             genes = msg['parameters'][2]
-            if (len(genes) == 0):
-                link = f'/02.images/{patient}/{patient}.{fov}.png'
-            elif (len(genes) == 1):
+            if len(genes) == 0:
+                # All-cells image
+                image_path = f'/mnt/mountpoint/T1D_Cosmx/figures/spatial_plots/FOV_images_all_cells/{patient}/{patient}_{fov}_Image.png'
+                image_bytes = open(image_path, 'rb').read()
+                messages.append({'type': 'image_bytes', 'content': image_bytes})
+                continue
+
+            elif len(genes) == 1:
+                # Map patient prefix to condition
+                if patient.startswith("COVID-A_"):
+                    condition_folder = "ABposLNpos"
+                    filename_prefix = "AB_plus_LN_plus"
+                elif patient.startswith("COVID-E_"):
+                    condition_folder = "CTRL"
+                    filename_prefix = "Control"
+                elif patient.startswith("non-COVID_"):
+                    condition_folder = "T1D"
+                    filename_prefix = "T1D"
+                else:
+                    messages.append({'type': 'error', 'content': f'Unrecognized patient prefix in {patient}'})
+                    continue
+
                 gene = genes[0].replace(' ', '@').replace('/', '.')
-                link = f'/02.images/{patient}/{patient}.{fov}.{gene}.png'
+                image_path = f'/mnt/mountpoint/T1D_Cosmx/figures/spatial_plots/all_fovs_single_genes/{condition_folder}/{patient}/{filename_prefix}_{patient}_{fov}_{gene}.png'
+                image_bytes = open(image_path, 'rb').read()
+                messages.append({'type': 'image_bytes', 'content': image_bytes})
+                continue
             if (len(genes) <= 1):
                 link = '$data-server-url$' + link
                 messages.append({'type': 'image', 'content': link})
@@ -651,12 +1546,6 @@ def generate_messgae(formatted_resp: list) -> str:
             png_base64 = 'data:image/png;base64,' + png_base64
             messages.append({'type': 'image', 'content': png_base64})
             continue
-        if (func_name == 'umap_cell_composition'):
-            with open('./imgs/umap.png', 'rb') as f:
-                png_bytes = f.read()
-            png_base64 = binToBase64(png_bytes)
-            png_base64 = 'data:image/png;base64,' + png_base64
-            messages.append({'type': 'image', 'content': png_base64})
     return messages
             
 

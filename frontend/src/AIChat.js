@@ -13,7 +13,7 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 const AI_CHAT_URL = `${BASEURL}/chat`; // Backend endpoint for chat API
-const TEST_MODE = true; // Set to false to use real backend
+const TEST_MODE = false; // Set to false to use real backend
 
 function AIChat() {
   const theme = useTheme();

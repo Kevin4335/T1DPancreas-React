@@ -17,7 +17,10 @@ from my_email import send_email_with_attachment
 import os
 import traceback
 
-ALLOWED_ORIGIN = 'http://128.84.40.121:9035'
+ALLOWED_ORIGINS = [
+    "http://128.84.40.121:9035",
+    "http://localhost:3000"
+]
 
 IS_SERVER = os.getenv('IS_SERVER', 'false').lower() == 'true'
 
@@ -186,7 +189,9 @@ class Request(BaseHTTPRequestHandler):
                     self.send_header('Content-Type', 'application/octet-stream')
                 self.send_header('Content-Length', len(data))
                 self.send_header('Cache-Control', 'max-age=86400')
-                self.send_header('Access-Control-Allow-Origin', ALLOWED_ORIGIN)
+                origin = self.headers.get("Origin")
+                if origin in ALLOWED_ORIGINS:
+                    self.send_header("Access-Control-Allow-Origin", origin)
                 self.end_headers()
                 self.wfile.write(data)
                 self.wfile.flush()
@@ -248,13 +253,17 @@ class Request(BaseHTTPRequestHandler):
                 print("Email sent successfully.")
 
                 self.send_response(202)
-                self.send_header('Access-Control-Allow-Origin', ALLOWED_ORIGIN)
+                origin = self.headers.get("Origin")
+                if origin in ALLOWED_ORIGINS:
+                    self.send_header("Access-Control-Allow-Origin", origin)
                 self.end_headers()
             except Exception as e:
                 print("Email send failed:", e)
                 traceback.print_exc()
                 self.send_response(500)
-                self.send_header('Access-Control-Allow-Origin', ALLOWED_ORIGIN)
+                origin = self.headers.get("Origin")
+                if origin in ALLOWED_ORIGINS:
+                    self.send_header("Access-Control-Allow-Origin", origin)
                 self.end_headers()
                 self.wfile.write(b'Failed to send email.')
             return
@@ -278,7 +287,9 @@ class Request(BaseHTTPRequestHandler):
         print('http OPTIONS')
         self.send_response(200)
         self.send_header('Connection', 'keep-alive')
-        self.send_header('Access-Control-Allow-Origin', ALLOWED_ORIGIN)
+        origin = self.headers.get("Origin")
+        if origin in ALLOWED_ORIGINS:
+            self.send_header("Access-Control-Allow-Origin", origin)
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type')
         self.send_header('Content-Length', 0)
@@ -318,7 +329,9 @@ class Request(BaseHTTPRequestHandler):
             self.send_header('Content-Type', 'image/jpeg')  # or detect dynamically
             self.send_header('Content-Length', len(data))
             self.send_header('Cache-Control', 'max-age=86400')
-            self.send_header('Access-Control-Allow-Origin', ALLOWED_ORIGIN)
+            origin = self.headers.get("Origin")
+            if origin in ALLOWED_ORIGINS:
+                self.send_header("Access-Control-Allow-Origin", origin)
             self.end_headers()
             self.wfile.write(data)
             self.wfile.flush()
@@ -394,7 +407,9 @@ class Request(BaseHTTPRequestHandler):
         self.send_header('Content-Length', len(data))
         if ('slide' in path):
             self.send_header('Cache-Control', f'max-age={3600*24*90}')
-        self.send_header('Access-Control-Allow-Origin', ALLOWED_ORIGIN)
+        origin = self.headers.get("Origin")
+        if origin in ALLOWED_ORIGINS:
+            self.send_header("Access-Control-Allow-Origin", origin)
         self.end_headers()
         self.wfile.write(data)
         self.wfile.flush()
@@ -408,8 +423,9 @@ class Request(BaseHTTPRequestHandler):
     def process_404(self, attack=False) -> None:
         self.send_response(404)
         self.send_header('Connection', 'keep-alive')
-        self.send_header('Content-Length', 13)
-        self.send_header('Access-Control-Allow-Origin', ALLOWED_ORIGIN)
+        origin = self.headers.get("Origin")
+        if origin in ALLOWED_ORIGINS:
+            self.send_header("Access-Control-Allow-Origin", origin)
         self.end_headers()
         self.wfile.write(b'404 Not Found')
         self.wfile.flush()
@@ -429,7 +445,9 @@ class Request(BaseHTTPRequestHandler):
                 self.send_response(400)
                 self.send_header('Connection', 'keep-alive')
                 self.send_header('Content-Length', len(msg))
-                self.send_header('Access-Control-Allow-Origin', ALLOWED_ORIGIN)
+                origin = self.headers.get("Origin")
+                if origin in ALLOWED_ORIGINS:
+                    self.send_header("Access-Control-Allow-Origin", origin)
                 self.end_headers()
                 self.wfile.write(msg)
                 self.wfile.flush()
@@ -444,7 +462,9 @@ class Request(BaseHTTPRequestHandler):
             self.send_response(202)
             self.send_header('Connection', 'keep-alive')
             self.send_header('Content-Length', 0)
-            self.send_header('Access-Control-Allow-Origin', ALLOWED_ORIGIN)
+            origin = self.headers.get("Origin")
+            if origin in ALLOWED_ORIGINS:
+                self.send_header("Access-Control-Allow-Origin", origin)
             self.end_headers()
             self.wfile.write(b'')
             self.wfile.flush()
@@ -463,7 +483,9 @@ class Request(BaseHTTPRequestHandler):
             self.send_header('Connection', 'keep-alive')
             self.send_header('Content-Type', 'image/png')
             self.send_header('Content-Length', len(png))
-            self.send_header('Access-Control-Allow-Origin', ALLOWED_ORIGIN)
+            origin = self.headers.get("Origin")
+            if origin in ALLOWED_ORIGINS:
+                self.send_header("Access-Control-Allow-Origin", origin)
             self.end_headers()
             self.wfile.write(png)
             self.wfile.flush()
@@ -490,7 +512,9 @@ class Request(BaseHTTPRequestHandler):
             if (len(set(my_genes)) != len(my_genes)):
                 self.send_response(500)
                 self.send_header('Connection', 'keep-alive')
-                self.send_header('Access-Control-Allow-Origin', ALLOWED_ORIGIN)
+                origin = self.headers.get("Origin")
+                if origin in ALLOWED_ORIGINS:
+                    self.send_header("Access-Control-Allow-Origin", origin)
                 msg = json.dumps({'msg': "Genes cannot be duplicated!"}, ensure_ascii=False).encode('utf-8')
                 self.send_header('Content-Length', len(msg))
                 self.end_headers()
@@ -505,7 +529,9 @@ class Request(BaseHTTPRequestHandler):
             if (resp[0] == False):
                 self.send_response(500)
                 self.send_header('Connection', 'keep-alive')
-                self.send_header('Access-Control-Allow-Origin', ALLOWED_ORIGIN)
+                origin = self.headers.get("Origin")
+                if origin in ALLOWED_ORIGINS:
+                    self.send_header("Access-Control-Allow-Origin", origin)
                 msg = binary_to_str(resp[1])
                 msg = json.dumps({'msg': msg}, ensure_ascii=False).encode('utf-8')
                 self.send_header('Content-Length', len(msg))
@@ -520,7 +546,9 @@ class Request(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Connection', 'keep-alive')
             self.send_header('Content-Length', len(data))
-            self.send_header('Access-Control-Allow-Origin', ALLOWED_ORIGIN)
+            origin = self.headers.get("Origin")
+            if origin in ALLOWED_ORIGINS:
+                self.send_header("Access-Control-Allow-Origin", origin)
             self.end_headers()
             self.wfile.write(data)
             self.wfile.flush()
