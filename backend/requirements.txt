@@ -3,3 +3,4 @@ myBasics==1.0.0
 myHttp==1.2.0
 mySecrets==1.0.4
 openai==1.93.1
+requests

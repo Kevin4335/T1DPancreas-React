@@ -9,7 +9,7 @@ import { useLocation } from 'react-router-dom';
 // Configuration constants
 let BASEURL = '';
 if (process.env.NODE_ENV === 'development') {
-  BASEURL = 'http://localhost:9035';
+  BASEURL = 'http://128.84.40.121:9035';
 }
 
 const AI_CHAT_URL = `${BASEURL}/chat`; // Backend endpoint for chat API
@@ -120,63 +120,66 @@ function AIChat() {
   };
 
   /**
-   * Send message to backend and handle response
-   * Manages loading states, localStorage updates, and message display
+   * Send a user message to the backend, handle and display the response
+   * Supports text and base64-encoded image responses
    * 
-   * @param {string} content - Message content to send
+   * @param {string} content - User message to send
    */
   const sendMessage = async (content) => {
     if (waiting || !content.trim()) return;
+
     setWaiting(true);
 
-    // Update openai-history in localStorage
-    let openaiHistory = JSON.parse(localStorage.getItem('openai-history') || '[]');
-    openaiHistory.push({ role: 'user', content });
-    localStorage.setItem('openai-history', JSON.stringify(openaiHistory));
-
-    // Add user message and loading message to display
-    const newMessages = [...messages, { type: 'user', content }, { type: 'text', content: 'Loading ......' }];
-    setMessages(newMessages);
-    localStorage.setItem('display-history', JSON.stringify(newMessages));
     try {
+      // --- Update history and state with user message ---
+      const userMsg = { type: 'user', content };
+      const loadingMsg = { type: 'text', content: 'Loading ......' };
+
+      const openaiHistory = [
+        ...(JSON.parse(localStorage.getItem('openai-history') || '[]')),
+        { role: 'user', content }
+      ];
+
+      const displayHistory = [...messages, userMsg, loadingMsg];
+      setMessages(displayHistory);
+      localStorage.setItem('openai-history', JSON.stringify(openaiHistory));
+      localStorage.setItem('display-history', JSON.stringify(displayHistory));
+
+      // --- Send request ---
       let data;
       if (TEST_MODE) {
-        // Use test mode for development
         data = await simulateBackendResponse(content);
       } else {
-        // Use real backend API
-        const response = await fetch(AI_CHAT_URL, {
+        const res = await fetch(AI_CHAT_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(openaiHistory),
+          body: JSON.stringify(openaiHistory)
         });
-        if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
-        data = await response.json();
+        if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+        data = await res.json();
       }
-      
-      // Remove loading message and add new messages from backend
-      let updatedMessages = [...newMessages];
-      updatedMessages.pop(); // Remove loading message
-      
-      // Add new messages from backend response
-      if (Array.isArray(data.messages)) {
-        updatedMessages = [...updatedMessages, ...data.messages];
-      }
-      
-      // Update state and localStorage
-      setMessages(updatedMessages);
-      localStorage.setItem('display-history', JSON.stringify(updatedMessages));
-      
-      // Update openai-history if provided by backend
+
+      // --- Process response messages ---
+      const processedMessages = (data.messages || []).map(msg => {
+        return msg;
+      });
+
+      const finalMessages = [...messages, userMsg, ...processedMessages];
+      setMessages(finalMessages);
+      localStorage.setItem('display-history', JSON.stringify(finalMessages));
+
+      // --- Update backend-provided history if available ---
       if (data.history) {
         localStorage.setItem('openai-history', JSON.stringify(data.history));
       }
+
     } catch (err) {
-      alert('Error: ' + err.message);
+      alert(`Error: ${err.message}`);
     } finally {
       setWaiting(false);
     }
   };
+
 
   /**
    * Handle send button click or Enter key press
@@ -387,8 +390,8 @@ function AIChat() {
         <Box
           sx={{
             position: 'relative',
-            maxWidth: '90vw',
-            maxHeight: '90vh',
+            maxWidth: '25vw',
+            maxHeight: '25vh',
             bgcolor: 'background.paper',
             boxShadow: 24,
             p: 1

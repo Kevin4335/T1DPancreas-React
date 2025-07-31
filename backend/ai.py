@@ -12,6 +12,9 @@ from queue import Queue
 from _thread import start_new_thread
 from copy import deepcopy
 from config import API_KEY
+import base64
+import requests
+import binascii
 
 __all__ = ['process_ai_chat']
 
@@ -27,11 +30,14 @@ Note that all these functions are read only (i.e. will not make any changes to t
 ## 2. Functions
 The website has the following 4 functions, as following:
 
-1. def fov_image(patient: str, fov: int, genes: list[str] = []) -> bytes:
+1. def fov_image(condition: str, patient: str, fov: int, genes: list[str] = []) -> bytes:
     '''
-    show the FOV image of the specific patient and FOV, with the genes (genes optional).
-    patient should start with "COVID-A_#", "COVID-E_#", or "non-COVID_#" (stand for COVID Patient (CO), COVID Explant Patient (COE), and Healthy (H)), will describe later.
-    genes is a list of gene names, it can be empty, but it can only have at most 3 genes. The genes list will be provided later, it is case insensitive.
+    show the FOV image of the specific condition, patient (also referred to as donor), and FOV, with the genes (genes optional).
+    patient should start with "HPAP-#", will describe later.
+    condition should be one of four: 'Control','AB+LN-','AB+LN+', 'T1D'. 
+    In the case of no gene. For no gene, still enter [] empty list as a parameter, simply have empty string for condition.
+    genes is a list of gene names, it can be empty, but it can only have at most 1 gene. The genes list will be provided later, it is case insensitive.
+    If more than one gene is desired, please inform that due to long load times, users must navigate to the dedicated FOV viewer portal. 
     '''
 
 2. def gene_expression(genes: list[str], cell_types: list[str]) -> bytes:
@@ -121,7 +127,15 @@ A: [{\"name\": \"gene_expression\", \"parameters\": [[\"CD68\", \"CD163\"], [\"M
     "HPAP-148": "75-99",
     "HPAP-149": "1-25"
 
-### 4.2 Genes
+### 4.2 Understand that for our Conditions and donors, not every condition has every donor available. Please be aware that these are the conditions and their donors. Be aware that under no circumstances should a mismatch occur between donor and condition:
+
+    'Control': ['HPAP-122', 'HPAP-129', 'HPAP-131', 'HPAP-140'],
+    'AB+LN-': ['HPAP-024', 'HPAP-045', 'HPAP-072', 'HPAP-092', 'HPAP-148'],
+    'AB+LN+': ['HPAP-008', 'HPAP-016', 'HPAP-029', 'HPAP-038', 'HPAP-107'],
+    'T1D': ['HPAP-078', 'HPAP-084', 'HPAP-089', 'HPAP-123', 'HPAP-149']
+
+Understand that numbers fall between these ranges. For example an FOV of 40 is permitted for HPAP-084, as 40 falls between 34 and 50. 
+### 4.3 Genes
 
 We have these 1000 genes (used in fov_image and gene_expression):
     "AATK",
@@ -1248,7 +1262,7 @@ def check_format(resp: str) -> Tuple[bool, str]:
             continue
         func_name = msg['name']
         parameters = msg['parameters']
-        if (func_name not in ['fov_image', 'gene_expression', 'enrichment', 'differential_exp', 'umap_cell_composition']):
+        if (func_name not in ['fov_image', 'gene_expression']):
             err_msg += f'Function name "{func_name}" not found, only has: fov_image, gene_expression, enrichment, differential_exp. '
             continue
         if (func_name == 'gene_expression'):
@@ -1275,21 +1289,23 @@ def check_format(resp: str) -> Tuple[bool, str]:
                 if (format_str(gene) not in GENES_AI_FORMATTED_TO_ORIGIN):
                     err_msg += f'In function {func_name}, gene "{gene}" not found. '
         if (func_name == 'fov_image'):
-            if (len(parameters) != 3):
-                err_msg += f'Function {func_name} must receive exactly 3 parameters, note that optional arguments must also be provided. '
+            if (len(parameters) != 4):
+                err_msg += f'Function {func_name} must receive exactly 4 parameters, note that optional arguments must also be provided. '
                 continue
             if (type(parameters[0]) != str):
+                err_msg += f'In function {func_name}, condition must be str. '
+            if (type(parameters[1]) != str):
                 err_msg += f'In function {func_name}, patient must be str. '
-            if (type(parameters[1]) != int):
+            if (type(parameters[2]) != int):
                 err_msg += f'In function {func_name}, fov must be int. '
-            if (is_list_str(parameters[2]) == False):
-                err_msg += f'In function {func_name}, cell_types must be a list of str. '
-            if ((type(parameters[0]) != str) or (type(parameters[1]) != int) or (is_list_str(parameters[2]) == False)):
-                continue
-            if (len(parameters[2]) > 3):
+            if (is_list_str(parameters[3]) == False):
+                err_msg += f'In function {func_name}, cell_types must be a list of str. {parameters} '
+            # if ((type(parameters[1]) != str) or (type(parameters[2]) != int) or (is_list_str(parameters[3]) == False)):
+            #     continue
+            if (len(parameters[3]) > 3):
                 err_msg += f"In function {func_name}, genes can only have at most 3 genes. "
-            patient = parameters[0]
-            fov = parameters[1]
+            patient = parameters[1]
+            fov = parameters[2]
             allowed_patients = ["HPAP-008", "HPAP-016", "HPAP-024", "HPAP-029", "HPAP-038", "HPAP-045", "HPAP-072", "HPAP-078", "HPAP-084", "HPAP-089", "HPAP-092", "HPAP-107", "HPAP-122", "HPAP-123", "HPAP-129", "HPAP-131", "HPAP-140", "HPAP-148", "HPAP-149"]
             patient_loc = find_after_format(allowed_patients, patient)
             patient = allowed_patients[patient_loc]
@@ -1381,18 +1397,23 @@ def format_gpt_resp(resp: str) -> list:
             results.append(current)
             continue
         if (func_name == 'fov_image'):
-            patient = parameters[0]
-            fov = parameters[1]  # already legal
+            condition = parameters[0]
+            patient = parameters[1]
+            fov = parameters[2]  # already legal
+            allowed_conditions = ['Control','AB+LN-','AB+LN+', 'T1D']
             allowed_patients = ["HPAP-008", "HPAP-016", "HPAP-024", "HPAP-029", "HPAP-038", "HPAP-045", "HPAP-072", "HPAP-078", "HPAP-084", "HPAP-089", "HPAP-092", "HPAP-107", "HPAP-122", "HPAP-123", "HPAP-129", "HPAP-131", "HPAP-140", "HPAP-148", "HPAP-149"]
 
             patient_loc = find_after_format(allowed_patients, patient)
             final_patient = allowed_patients[patient_loc]
+            
+            condition_loc = find_after_format(allowed_conditions, condition)
+            final_condition = allowed_conditions[condition_loc]
             final_genes = []
-            for gene in parameters[2]:
+            for gene in parameters[3]:
                 if (format_str(gene) in GENES_AI_FORMATTED_TO_ORIGIN):
                     final_genes.append(GENES_AI_FORMATTED_TO_ORIGIN[format_str(gene)])
             final_genes = list(set(final_genes))
-            current['parameters'] = [final_patient, fov, final_genes]
+            current['parameters'] = [final_condition, final_patient, fov, final_genes]
             results.append(current)
             continue
     return results
@@ -1454,97 +1475,100 @@ def generate_messgae(formatted_resp: list) -> str:
             messages.append({'type': 'text', 'content': msg})
             continue
         func_name = msg['name']
-        if (func_name == 'gene_expression'):
+        if func_name == 'gene_expression':
             genes = msg['parameters'][0]
             cell_types = msg['parameters'][1]
+
+            # Optional: fill out cell_type_to_short if needed
             cell_type_to_short = {
-                'Lymphoid cell_1': '0:LC-1',
-                'Macrophage': '1:Macro',
-                'Fibroblast': '2:Fibro',
-                'Smooth muscle cell': '3:SMC',
-                'Endothelial cell': '4:Endo',
-                'Alveolar type II cell': '5:AT2',
-                'Monocyte': '6:Mono',
-                'Plasma cell': '7:Plasma',
-                'Red blood cell': '8:RBC',
-                'Lymphoid cell_2': '9:LC-2',
-                'Alveolar type I cell': '10:AT1',
-                'Basal cell': '11:Basal',
-                'Neutrophil': '12:Nutrophil',
-                'Unknown': '13:Unknown'
+                # 'LongName': 'ShortName',
+                # e.g. 'CD4 T Cell': 'CD4T'
             }
-            cell_types = [cell_type_to_short[cell_type] for cell_type in cell_types]
-            cell_types = ','.join(cell_types)
+
+            # Optional translation
+            if cell_type_to_short:
+                cell_types = [cell_type_to_short.get(cell_type, cell_type) for cell_type in cell_types]
+
+            # Sort and prepare strings
             genes.sort()
-            genes = ','.join(genes)
-            t = str(time())
-            task_id = sha256((f'{genes}_{cell_types}_{t}').encode('utf-8')).hexdigest()
-            resp = gene_expression(genes, cell_types, f'./tmp/{task_id}.pdf')
-            if (resp[0] == False):
-                err_msg = binary_to_str(resp[1])
-                messages.append({'type': 'error', 'content': err_msg})
-                continue
-            file_path = f'../docker/resources/04.exp_functions/tmp/{task_id}.pdf'
-            png_bytes = pdf_to_png_bytes(file_path)
-            png_base64 = binToBase64(png_bytes)
-            png_base64 = 'data:image/png;base64,' + png_base64
-            messages.append({'type': 'image', 'content': png_base64})
+            genes_str = ','.join(genes)
+            cell_types_str = ','.join(cell_types)
+
+            # Construct request data
+            request_data = {
+                'f': 2,
+                'p1': genes_str,
+                'p2': cell_types_str
+            }
+
+            json_str = json.dumps(request_data)
+            hex_str = binascii.hexlify(json_str.encode('utf-8')).decode('utf-8')
+            api_url = f'http://128.84.40.121:5000/gene_exp/{hex_str}'
+
+            try:
+                resp = requests.get(api_url, timeout=950)  # 950 seconds matches frontend
+                if resp.status_code == 200:
+                    data = resp.json()
+                    if 'img' in data:
+                        img_base64 = data['img']
+                        # Prefix for frontend rendering
+                        img_url = f'data:image/png;base64,{img_base64[0]}'
+                        messages.append({'type': 'image', 'content': img_url})
+                    else:
+                        messages.append({'type': 'error', 'content': 'No image found in response.'})
+                else:
+                    messages.append({'type': 'error', 'content': f'Image server returned status {resp.status_code}'})
+            except Exception as e:
+                messages.append({'type': 'error', 'content': f'Error contacting gene expression server: {str(e)}'})
+
             continue
         if (func_name == 'fov_image'):
             # messages.append({'type': 'error', 'content': 'Currently fov_image is not implemented.'})
             # continue
-            patient = msg['parameters'][0]
-            patient = sample_shown_to_inner()[patient]
-            fov = msg['parameters'][1]
-            genes = msg['parameters'][2]
+            condition = msg['parameters'][0]
+            patient = msg['parameters'][1]
+            fov = msg['parameters'][2]
+            genes = msg['parameters'][3]
+            folder_map = {
+                'Control': 'CTRL',
+                'AB+LN-': 'ABposLNminus',
+                'AB+LN+': 'ABposLNpos',
+                'T1D': 'T1D'
+            }
+
+            filename_map = {
+                'Control': 'Control',
+                'AB+LN-': 'AB_plus_LN_minus',
+                'AB+LN+': 'AB_plus_LN_plus',
+                'T1D': 'T1D'
+            }
+
             if len(genes) == 0:
-                # All-cells image
-                image_path = f'/mnt/mountpoint/T1D_Cosmx/figures/spatial_plots/FOV_images_all_cells/{patient}/{patient}_{fov}_Image.png'
-                image_bytes = open(image_path, 'rb').read()
-                messages.append({'type': 'image_bytes', 'content': image_bytes})
+                # All-cell fallback
+                image_path = f'/spatial_plots/all_cells/{patient}/{patient}_{fov}_Image.png'
+                messages.append({'type': 'image', 'content': image_path})
                 continue
 
             elif len(genes) == 1:
-                # Map patient prefix to condition
-                if patient.startswith("COVID-A_"):
-                    condition_folder = "ABposLNpos"
-                    filename_prefix = "AB_plus_LN_plus"
-                elif patient.startswith("COVID-E_"):
-                    condition_folder = "CTRL"
-                    filename_prefix = "Control"
-                elif patient.startswith("non-COVID_"):
-                    condition_folder = "T1D"
-                    filename_prefix = "T1D"
-                else:
-                    messages.append({'type': 'error', 'content': f'Unrecognized patient prefix in {patient}'})
+                gene = genes[0].replace(' ', '@').replace('/', '.')
+                try:
+                    folder_name = folder_map[condition]
+                    filename_prefix = filename_map[condition]
+                except KeyError:
+                    messages.append({'type': 'error', 'content': f'Unknown group label: {condition}'})
                     continue
 
-                gene = genes[0].replace(' ', '@').replace('/', '.')
-                image_path = f'/mnt/mountpoint/T1D_Cosmx/figures/spatial_plots/all_fovs_single_genes/{condition_folder}/{patient}/{filename_prefix}_{patient}_{fov}_{gene}.png'
-                image_bytes = open(image_path, 'rb').read()
-                messages.append({'type': 'image_bytes', 'content': image_bytes})
+                image_path = (
+                    f'/spatial_plots/single_gene/'
+                    f'{folder_name}/{patient}/{filename_prefix}_{patient}_{fov}_{gene}.png'
+                )
+                messages.append({'type': 'image', 'content': image_path})
                 continue
             if (len(genes) <= 1):
                 link = '$data-server-url$' + link
                 messages.append({'type': 'image', 'content': link})
                 continue
-            # messages.append({'type': 'error', 'content': 'Currently fov_image with multiple genes is not implemented.'})
-            genes.sort()
-            genes = ','.join(genes)
-            t = str(time())
-            task_id = sha256((f'{patient}_{fov}_{genes}_{t}').encode('utf-8')).hexdigest()
-            slide_num = SAMPLE_FOV_TO_SLIDE[(patient, fov)]
-            slide = f'S7280.{slide_num}'
-            resp = fov_multi(slide, patient, fov, genes, f'./tmp/{task_id}.pdf')
-            if (resp[0] == False):
-                err_msg = binary_to_str(resp[1])
-                messages.append({'type': 'error', 'content': err_msg})
-                continue
-            file_path = f'../docker/resources/04.exp_functions/tmp/{task_id}.pdf'
-            png_bytes = pdf_to_png_bytes(file_path)
-            png_base64 = binToBase64(png_bytes)
-            png_base64 = 'data:image/png;base64,' + png_base64
-            messages.append({'type': 'image', 'content': png_base64})
+            messages.append({'type': 'error', 'content': 'Currently, FOV image with multiple genes is not supported in AI Chat due to long load times. Please navigate to the dedicated FOV portal for this feature.'})
             continue
     return messages
             
@@ -1590,6 +1614,8 @@ def process_ai_chat(request, path:str):
     messages = generate_messgae(formatted)
         
     request.send_response(200)
+    print("history types:", [type(item) for item in history])
+    print("messages types:", [type(msg.get("content")) for msg in messages])
     resp_data = json.dumps({'history': history, 'messages': messages}, ensure_ascii=False)
     resp_data = resp_data.encode('utf-8')
     request.send_header('Content-Length', len(resp_data))
