@@ -10,64 +10,100 @@ import SendIcon from '@mui/icons-material/Send';
 // Configuration constants
 let BASEURL = '';
 if (process.env.NODE_ENV === 'development') {
-  BASEURL = 'http://localhost:9035';
+  BASEURL = 'http://128.84.40.121:9035';
 }
 
 const AI_CHAT_URL = `${BASEURL}/chat`; // Backend endpoint for chat API
-const TEST_MODE = true; // Set to false to use real backend
+const TEST_MODE = false; // Set to false to use real backend
 
 function AIChat() {
   const theme = useTheme();
+  
+  // Router location for getting initial input from navigation
   const location = useLocation();
   const initialInput = location.state?.chatInput || '';
 
+  // State management
   const [messages, setMessages] = useState(() => {
+    // Initialize messages from localStorage or initial input
     const stored = localStorage.getItem('display-history');
     return stored ? JSON.parse(stored) : (initialInput ? [{ type: 'user', content: initialInput }] : []);
   });
-
-  const [input, setInput] = useState('');
-  const [waiting, setWaiting] = useState(false);
-  const [lightboxOpen, setLightboxOpen] = useState(false);
-  const [lightboxImage, setLightboxImage] = useState('');
-
+  
+  const [input, setInput] = useState(''); // Current input field value
+  const [waiting, setWaiting] = useState(false); // Loading state during API calls
+  const [lightboxOpen, setLightboxOpen] = useState(false); // Lightbox modal visibility
+  const [lightboxImage, setLightboxImage] = useState(''); // Current image in lightbox
+  
+  // Ref for auto-scrolling chat area
   const listRef = useRef(null);
 
+  /**
+   * Auto-scroll to bottom when new messages are added
+   */
   useEffect(() => {
     if (listRef.current) {
       listRef.current.scrollTop = listRef.current.scrollHeight;
     }
   }, [messages]);
 
+  /**
+   * Handle image click to open lightbox
+   * @param {string} imageSrc - URL of the image to display
+   */
   const handleImageClick = (imageSrc) => {
     setLightboxImage(imageSrc);
     setLightboxOpen(true);
   };
 
+  /**
+   * Close the lightbox modal
+   */
   const handleCloseLightbox = () => {
     setLightboxOpen(false);
     setLightboxImage('');
   };
 
+  // Pre-made chat prompts for quick start
   const prompts = [
-    "Show me the gene expression for INS in Beta cells.",
-    "What is the cell composition in FOV 101 for a T1D donor?",
-    "Compare gene expression of GCG between Control and T1D."
+    "Show me the gene expression for AATK in Beta cells.",
+    "What is the figure for FOV 1 of Donor HPAP-129.",
+    "What functions and features do you have at your disposal."
   ];
 
+  /**
+   * Handle prompt card click to auto-fill input
+   * @param {string} prompt - The selected prompt text
+   */
   const handlePromptClick = (prompt) => {
     setInput(prompt);
+    sendMessage(prompt);
+    setInput('');
   };
 
+  /**
+   * Clear all chat history from localStorage and state
+   * Prevents clearing while waiting for API response
+   */
   const clearHistory = () => {
-    if (waiting) return;
+    if (waiting) return; // Don't clear while waiting for response
     localStorage.setItem('openai-history', JSON.stringify([]));
     localStorage.setItem('display-history', JSON.stringify([]));
     setMessages([]);
   };
 
+  /**
+   * Simulate backend response for testing purposes
+   * Returns different responses based on input content
+   * 
+   * @param {string} content - User input message
+   * @returns {Promise<Object>} Simulated API response
+   */
   const simulateBackendResponse = async (content) => {
+    // Simulate network delay
     await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Return test responses based on input content
     if (content.toLowerCase().includes('image') || content.toLowerCase().includes('png')) {
       return {
         messages: [
@@ -86,47 +122,71 @@ function AIChat() {
     }
   };
 
+  /**
+   * Send a user message to the backend, handle and display the response
+   * Supports text and base64-encoded image responses
+   * 
+   * @param {string} content - User message to send
+   */
   const sendMessage = async (content) => {
     if (waiting || !content.trim()) return;
+
     setWaiting(true);
 
-    let openaiHistory = JSON.parse(localStorage.getItem('openai-history') || '[]');
-    openaiHistory.push({ role: 'user', content });
-    localStorage.setItem('openai-history', JSON.stringify(openaiHistory));
-
-    const newMessages = [...messages, { type: 'user', content }, { type: 'text', content: 'Loading ......' }];
-    setMessages(newMessages);
-    localStorage.setItem('display-history', JSON.stringify(newMessages));
-
     try {
-      let data = TEST_MODE
-        ? await simulateBackendResponse(content)
-        : await fetch(AI_CHAT_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(openaiHistory),
-          }).then(res => {
-            if (!res.ok) throw new Error(`HTTP error: ${res.status}`);
-            return res.json();
-          });
+      // --- Update history and state with user message ---
+      const userMsg = { type: 'user', content };
+      const loadingMsg = { type: 'text', content: 'Loading ......' };
 
-      let updatedMessages = [...newMessages];
-      updatedMessages.pop();
-      if (Array.isArray(data.messages)) {
-        updatedMessages = [...updatedMessages, ...data.messages];
+      const openaiHistory = [
+        ...(JSON.parse(localStorage.getItem('openai-history') || '[]')),
+        { role: 'user', content }
+      ];
+
+      const displayHistory = [...messages, userMsg, loadingMsg];
+      setMessages(displayHistory);
+      localStorage.setItem('openai-history', JSON.stringify(openaiHistory));
+      localStorage.setItem('display-history', JSON.stringify(displayHistory));
+
+      // --- Send request ---
+      let data;
+      if (TEST_MODE) {
+        data = await simulateBackendResponse(content);
+      } else {
+        const res = await fetch(AI_CHAT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(openaiHistory)
+        });
+        if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+        data = await res.json();
       }
-      setMessages(updatedMessages);
-      localStorage.setItem('display-history', JSON.stringify(updatedMessages));
+
+      // --- Process response messages ---
+      const processedMessages = (data.messages || []).map(msg => {
+        return msg;
+      });
+
+      const finalMessages = [...messages, userMsg, ...processedMessages];
+      setMessages(finalMessages);
+      localStorage.setItem('display-history', JSON.stringify(finalMessages));
+
+      // --- Update backend-provided history if available ---
       if (data.history) {
         localStorage.setItem('openai-history', JSON.stringify(data.history));
       }
+
     } catch (err) {
-      alert('Error: ' + err.message);
+      alert(`Error: ${err.message}`);
     } finally {
       setWaiting(false);
     }
   };
 
+
+  /**
+   * Handle send button click or Enter key press
+   */
   const handleSend = () => {
     if (input.trim()) {
       sendMessage(input);
@@ -134,17 +194,21 @@ function AIChat() {
     }
   };
 
+  /**
+   * Send initial input on component mount if provided via navigation
+   */
   useEffect(() => {
     if (initialInput) {
       sendMessage(initialInput);
     }
+    // eslint-disable-next-line
   }, []);
-
+  
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Navbar />
       <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
-        <Typography variant="h4" sx={{ fontWeight: 700, mb: 2, textAlign: 'center' }}>AI Chat</Typography>
+        <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold', marginTop: '2rem', textAlign: 'center'}}>AI Chat</Typography>
 
         <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end' }}>
           <Button
@@ -244,9 +308,24 @@ function AIChat() {
                 '& .MuiOutlinedInput-root': {
                   borderRadius: '10rem',
                   backgroundColor: '#fff',
-                  '& fieldset': { borderColor: '#fff' },
-                  '&:hover fieldset': { borderColor: '#fff' },
-                  '&.Mui-focused fieldset': { borderColor: '#fff' },
+                  '& fieldset': {
+                    borderColor: '#fff',
+                  },
+                  '&:hover fieldset': {
+                    borderColor: '#fff',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: '#fff',
+                  },
+                  '&.Mui-disabled': {
+                    backgroundColor: '#fff',
+                    '& fieldset': {
+                      borderColor: '#fff',
+                    },
+                    '&:hover fieldset': {
+                      borderColor: '#fff',
+                    },
+                  },
                 },
               }}
               disabled={waiting}
@@ -257,21 +336,21 @@ function AIChat() {
               onClick={handleSend}
               disabled={waiting}
               sx={{
-                              ml: 1.5,
-                              mr: 1.5,
-                              height: '75%',
-                              borderRadius: 28,
-                              transition: 'all 0.05s ease',
-                              boxShadow: '0 1px 6px rgba(0, 0, 0, 0.08)',
-                              '&:hover': {
-                                backgroundColor: theme.palette.SiteSecondaryColor.hover,
-                                boxShadow: '0 3px 10px rgba(0, 0, 0, 0.1)',
-                                transform: 'scale(1.02)',
-                              },
-                              '&:active': {
-                                transform: 'scale(0.99)',
-                              },
-                            }}
+                  ml: 1.5,
+                  mr: 1.5,
+                  height: '75%',
+                  borderRadius: 28,
+                  transition: 'all 0.05s ease',
+                  boxShadow: '0 1px 6px rgba(0, 0, 0, 0.08)',
+                  '&:hover': {
+                    backgroundColor: theme.palette.SiteSecondaryColor.hover,
+                    boxShadow: '0 3px 10px rgba(0, 0, 0, 0.1)',
+                    transform: 'scale(1.02)',
+                  },
+                  '&:active': {
+                    transform: 'scale(0.99)',
+                  },
+                }}
             >
               <SendIcon />
             </Button>

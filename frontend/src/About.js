@@ -15,7 +15,7 @@ function About() {
         {/* Welcome Section */}
         <Typography variant="h4" gutterBottom sx={{ 
           fontWeight: 'bold', 
-          marginTop: '1rem', 
+          marginTop: '2rem', 
           textAlign: 'center',
           color: theme.palette.primary.main
         }}>
@@ -209,6 +209,37 @@ function About() {
               </Typography>
               <Typography variant="body1" sx={{ lineHeight: 1.7 }}>
                 Yuanhao is a PhD student in the Department of Computational Medicine & Bioinformatics (DCMB) in University of Michigan. His research focuses on integrating biomedical knowledge using knowledge graphs and applying biomedical knowledge graphs to large language models.
+              </Typography>
+            </Grid>
+          </Grid>
+        </Paper>
+        
+        {/* Kevin Chang */}
+        <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
+          <Grid container spacing={3} alignItems="center">
+            <Grid item xs={12} sm={3}>
+              <Box sx={{ textAlign: 'center' }}>
+                <Avatar 
+                  src={`${process.env.PUBLIC_URL}/imgs/kvchang_img.jpg`}
+                  alt="Kevin Chang"
+                  sx={{ width: 150, height: 150, mx: 'auto' }}
+                />
+              </Box>
+            </Grid>
+            <Grid item xs={12} sm={9}>
+              <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1 }}>
+                Kevin Chang
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 1, color: theme.palette.text.secondary }}>
+                Undergraduate Student
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 2, color: theme.palette.text.secondary }}>
+                Email: <a href="mailto:kvchang@umich.edu" style={{ color: theme.palette.primary.main }}>kvchang@umich.edu</a>
+              </Typography>
+              <Typography variant="body1" sx={{ lineHeight: 1.7 }}>
+                Kevin is an undergraduate student in the Department of Electrical Engineering and Computer Science (EECS) at the University of Michigan, 
+                pursuing a major in Computer Science with a minor in User Experience Design. He is currently a research assistant in the Liu Lab, with 
+                interests in machine learning, large language models, and web development.
               </Typography>
             </Grid>
           </Grid>
