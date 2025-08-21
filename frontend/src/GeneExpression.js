@@ -202,7 +202,7 @@ function GeneExpression() {
     return (
         <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
             <Navbar />
-            <Container mb='2vw' sx={{ flex: 1 }}>
+            <Container mb='2vw' sx={{ flex: 1, mb: 2  }}>
                 <Typography variant="h4" gutterBottom sx={{ 
                     fontWeight: 'bold', 
                     marginTop: '1rem', 
@@ -230,10 +230,7 @@ function GeneExpression() {
                         <item>
                             <Paper elevation={3} sx={{ 
                                 p: 3, 
-                                border: '2px solid black', 
-                                borderRight: '6px solid black', 
-                                borderBottom: '6px solid black', 
-                                borderRadius: '0',
+                                borderRadius: '1rem',
                                 height: 'fit-content'
                             }}>
                                 <Typography variant="h6" gutterBottom sx={{ mb: 3, textAlign: 'center' }}>
@@ -356,10 +353,7 @@ function GeneExpression() {
                     <Grid size={12}>
                         <item>
                             <Paper elevation={3} sx={{ 
-                                border: '2px solid black', 
-                                borderRight: '6px solid black', 
-                                borderBottom: '6px solid black', 
-                                borderRadius: '0',
+                                borderRadius: '1rem',
                                 minHeight: 500
                             }}>
                                 {/* Error Display */}
@@ -417,7 +411,7 @@ function GeneExpression() {
                                         p: 3
                                     }} >
                                         <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
-                                            No Plot Generated Yet
+                                            <b>Ready to Explore</b>
                                         </Typography>
                                         <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>
                                             Enter gene names and select cell types, then click "Generate Expression Plot" to view the results.

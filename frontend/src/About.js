@@ -47,7 +47,7 @@ function About() {
         </Typography>
 
         {/* Yuling Han */}
-        <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
+        <Paper elevation={2} sx={{ p: 3, mb: 4, borderRadius: '1rem' }}>
           <Grid container spacing={3} alignItems="center">
             <Grid item xs={12} sm={3}>
               <Box sx={{ textAlign: 'center' }}>
@@ -73,7 +73,7 @@ function About() {
         </Paper>
 
         {/* Liuliu Yang */}
-        <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
+        <Paper elevation={2} sx={{ p: 3, mb: 4 , borderRadius: '1rem'}}>
           <Grid container spacing={3} alignItems="center">
             <Grid item xs={12} sm={3}>
               <Box sx={{ textAlign: 'center' }}>
@@ -99,7 +99,7 @@ function About() {
         </Paper>
 
         {/* Dongliang Leng */}
-        <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
+        <Paper elevation={2} sx={{ p: 3, mb: 4 , borderRadius: '1rem'}}>
           <Grid container spacing={3} alignItems="center">
             <Grid item xs={12} sm={3}>
               <Box sx={{ textAlign: 'center' }}>
@@ -128,7 +128,7 @@ function About() {
         </Paper>
 
         {/* Tiancheng Jiao */}
-        <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
+        <Paper elevation={2} sx={{ p: 3, mb: 4 , borderRadius: '1rem'}}>
           <Grid container spacing={3} alignItems="center">
             <Grid item xs={12} sm={3}>
               <Box sx={{ textAlign: 'center' }}>
@@ -157,7 +157,7 @@ function About() {
         </Paper>
 
         {/* Ricky Han */}
-        <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
+        <Paper elevation={2} sx={{ p: 3, mb: 4 , borderRadius: '1rem'}}>
           <Grid container spacing={3} alignItems="center">
             <Grid item xs={12} sm={3}>
               <Box sx={{ textAlign: 'center' }}>
@@ -186,7 +186,7 @@ function About() {
         </Paper>
 
         {/* Yuanhao Huang */}
-        <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
+        <Paper elevation={2} sx={{ p: 3, mb: 4 , borderRadius: '1rem'}}>
           <Grid container spacing={3} alignItems="center">
             <Grid item xs={12} sm={3}>
               <Box sx={{ textAlign: 'center' }}>
@@ -215,7 +215,7 @@ function About() {
         </Paper>
         
         {/* Kevin Chang */}
-        <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
+        <Paper elevation={2} sx={{ p: 3, mb: 4 , borderRadius: '1rem'}}>
           <Grid container spacing={3} alignItems="center">
             <Grid item xs={12} sm={3}>
               <Box sx={{ textAlign: 'center' }}>

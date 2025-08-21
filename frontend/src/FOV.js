@@ -275,7 +275,7 @@ function FOV() {
     return (
         <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
             <Navbar />
-            <Container sx={{ flex: 1 }}>
+            <Container sx={{ flex: 1, mb: 2 }}>
                 <Typography variant="h4" gutterBottom sx={{ 
                     fontWeight: 'bold', 
                     marginTop: '1rem', 
@@ -301,7 +301,7 @@ function FOV() {
                     {/* Left side - Form */}
                     <Grid size={4}>
                         <item>
-                            <Paper elevation={3} sx={{ p: 3, border: '2px solid black', borderRight: '6px solid black', borderBottom: '6px solid black', borderRadius: '0' }}>
+                            <Paper elevation={3} sx={{ p: 3, borderRadius: '1rem' }}>
                                 <Typography variant="h6" gutterBottom sx={{ mb: 3, textAlign: 'center' }}>
                                     FOV Parameters
                                 </Typography>
@@ -457,7 +457,7 @@ function FOV() {
                     {/* Right side - Image Display */}
                     <Grid size={8}>
                         <item>
-                            <Paper elevation={3} sx={{ border: '2px solid black', borderRight: '6px solid black', borderBottom: '6px solid black', borderRadius: '0' }}>
+                            <Paper elevation={3} sx={{ borderRadius: '1rem' }}>
                                 {errorMessage && (
                                     <Alert severity="error" sx={{ m: 2 }}>
                                         {errorMessage}
@@ -506,7 +506,7 @@ function FOV() {
                                             alignItems: 'center',
                                         }}>
                                             <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
-                                                No Plot Generated Yet
+                                                <b>Ready to Explore</b>
                                             </Typography>
                                             <Typography color="text.secondary">
                                                 Select parameters and click "Generate FOV Image" to view the result
