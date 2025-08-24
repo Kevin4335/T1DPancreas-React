@@ -224,9 +224,9 @@ function GeneExpression() {
                 </Typography>
                 
                 {/* Form Container */}
-                <Grid container spacing={4} sx={{ mt: 2 }}>
+                <Grid container spacing={3} sx={{ mt: 2 }}>
                     {/* Left side - Input Form */}
-                    <Grid size={12}>
+                    <Grid size={4}>
                         <item>
                             <Paper elevation={3} sx={{ 
                                 p: 3, 
@@ -350,7 +350,7 @@ function GeneExpression() {
                     </Grid>
                     
                     {/*Results Display */}
-                    <Grid size={12}>
+                    <Grid size={8}>
                         <item>
                             <Paper elevation={3} sx={{ 
                                 borderRadius: '1rem',
