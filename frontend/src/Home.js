@@ -36,10 +36,10 @@ function Home() {
                         <b>T1D Spatial Atlas</b> is an interactive, AI-powered platform for analyzing CosMX (NanoString) spatial transcriptomics data from human pancreatic tissues.
                       </Typography>
                       <Typography variant="body1" gutterBottom>
-                        It features single-cell spatial datasets from 20 donors, representing key stages of type 1 diabetes progression: healthy controls, autoantibody-positive individuals without lymphocyte infiltration (AB⁺LN⁻), those with infiltration (AB⁺LN⁺), and individuals with clinical T1D.
+                        It features single-cell spatial datasets from 19 donors, representing key stages of type 1 diabetes progression: healthy controls, autoantibody-positive individuals without lymphocyte infiltration (AAB⁺LP⁻), those with infiltration (AAB⁺LP⁺), and individuals with clinical T1D.
                       </Typography>
                       <Typography variant="body1" gutterBottom>
-                        The platform enables in-depth exploration of spatial gene expression and cell-type-specific changes across these distinct disease stages.
+                        This platform enables detailed exploration of spatial gene expression patterns and cell-type–specific changes across these distinct disease stages, providing a powerful resource for uncovering mechanisms of T1D pathogenesis.
                       </Typography>
                     </item>
                 </Grid>
@@ -58,10 +58,8 @@ function Home() {
                           <Typography variant="h6" sx={{ fontWeight: 600 }}>
                             Subjects
                           </Typography>
-                          <Typography variant="h5" sx={{ fontWeight: 'bold', mt: 1 }}>
-                            5 / group
-                          </Typography>
-                          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
+                          
+                          <Typography variant="body1" sx={{ color: 'text.primary', mt: 0.5 }}>
                             Control, AB⁺LN⁻, AB⁺LN⁺, T1D
                           </Typography>
                         </Card>
@@ -132,7 +130,7 @@ function Home() {
             </Grid>
 
             {/* Pre-made prompt cards in a single row */}
-            <Grid container spacing={2} justifyContent="center" alignItems="stretch" sx={{ mt: 4, mb: 2 }}>
+            <Grid container spacing={2} justifyContent="center" alignItems="stretch" sx={{ mt: 3, mb: 2 }}>
               {prompts.map((prompt, idx) => (
                 <Grid size={4} key={idx}>
                   <item>
@@ -189,7 +187,7 @@ function Home() {
             <Grid container spacing={3} width='100%' height='100%'>
                 <Grid size={12}>
                     <item>
-                      <Box display="flex" justifyContent="center" mt={6}>
+                      <Box display="flex" justifyContent="center" mt={3}>
                         <Box
                           sx={{
                             display: 'flex',

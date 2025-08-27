@@ -23,9 +23,27 @@ function Navbar() {
     <AppBar position="static" color="SiteMainColor" elevation={4} sx={{ borderBottom: '3px solid black', boxShadow: 'none'}}>
       <Toolbar sx={{ justifyContent: 'space-between' }}>
         {/* Left: Website name */}
-        <Typography variant="h6" component="div" fontWeight={'bold'}>
+        <Typography
+          variant="h6"
+          component="div"
+          fontWeight="bold"
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+          }}
+        >
+          <img
+            src={`${process.env.PUBLIC_URL}/t1d_logo.png`}
+            alt="T1D Logo"
+            style={{
+              height: "5rem",
+              width: "auto",
+            }}
+          />
           T1D <span style={{ color: theme.palette.yellow.main }}>Spatial</span> Atlas
         </Typography>
+
 
         {/* Right: Navigation links */}
         <Box>
