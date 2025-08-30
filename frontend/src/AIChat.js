@@ -10,7 +10,7 @@ import SendIcon from '@mui/icons-material/Send';
 // Configuration constants
 let BASEURL = '';
 if (process.env.NODE_ENV === 'development') {
-  BASEURL = 'http://128.84.40.121:9035';
+  BASEURL = 'http://128.84.40.121';
 }
 
 const AI_CHAT_URL = `${BASEURL}/chat`; // Backend endpoint for chat API
@@ -207,8 +207,8 @@ function AIChat() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Navbar />
-      <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
-        <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold', marginTop: '2rem', textAlign: 'center'}}>AI Chat</Typography>
+      <Container sx={{ flex: 1, mb: 2 }}>
+        <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold', marginTop: '1rem', textAlign: 'center'}}>AI Chat</Typography>
 
         <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end' }}>
           <Button
@@ -309,21 +309,21 @@ function AIChat() {
                   borderRadius: '10rem',
                   backgroundColor: '#fff',
                   '& fieldset': {
-                    borderColor: '#fff',
+                    border: 'none',
                   },
                   '&:hover fieldset': {
-                    borderColor: '#fff',
+                    border: 'none',
                   },
                   '&.Mui-focused fieldset': {
-                    borderColor: '#fff',
+                    border: 'none',
                   },
                   '&.Mui-disabled': {
                     backgroundColor: '#fff',
                     '& fieldset': {
-                      borderColor: '#fff',
+                      border: 'none',
                     },
                     '&:hover fieldset': {
-                      borderColor: '#fff',
+                      border: 'none',
                     },
                   },
                 },

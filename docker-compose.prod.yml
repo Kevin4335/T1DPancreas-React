@@ -6,7 +6,7 @@ services:
       context: .
       dockerfile: backend/Dockerfile.prod
     ports:
-      - 9035:80
+      - 80:80
     environment:
       - IS_SERVER=true
       - ENV_MODE=production

@@ -238,7 +238,7 @@ function FOV() {
                         setImageUrl(imageUrl);
 
                         // Send simple email
-                        const response = await fetch('http://128.84.40.121:9035/api/email_simple', {
+                        const response = await fetch('http://128.84.40.121/api/email_simple', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
