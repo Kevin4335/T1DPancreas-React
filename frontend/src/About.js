@@ -46,6 +46,34 @@ function About() {
           Our Team
         </Typography>
 
+        {/* Sally Lee */}
+        <Paper elevation={2} sx={{ p: 3, mb: 4 , borderRadius: '1rem'}}>
+          <Grid container spacing={3} alignItems="center">
+            <Grid item xs={12} sm={3}>
+              <Box sx={{ textAlign: 'center' }}>
+                <Avatar 
+                  //src={`${process.env.PUBLIC_URL}/imgs/jtc.jpeg`}
+                  alt="Sally Lee"
+                  sx={{ width: 150, height: 150, mx: 'auto' }}
+                />
+              </Box>
+            </Grid>
+            <Grid item xs={12} sm={9}>
+              <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1 }}>
+                Sally Lee
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 1, color: theme.palette.text.secondary }}>
+                Graduate Student
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 2, color: theme.palette.text.secondary }}>
+                Email: <a href="mailto:sl2767@cornell.edu" style={{ color: theme.palette.primary.main }}>sl2767@cornell.edu</a>
+              </Typography>
+              <Typography variant="body1" sx={{ lineHeight: 1.7 }}>
+                Sally Lee is a Ph.D. candidate in Biomedical Engineering at Cornell University, where she is advised by Dr. Shuibing Chen at Weill Cornell Medicine. Her research integrates bioinformatics and wet lab techniques to investigate Type 1 and Type 2 diabetes. She holds a dual bachelor's degree in Biology from Emory University and Biomedical Engineering from the Georgia Institute of Technology.
+              </Typography>
+            </Grid>
+          </Grid>
+        </Paper>
         
         {/* Tiancheng Jiao */}
         <Paper elevation={2} sx={{ p: 3, mb: 4 , borderRadius: '1rem'}}>
