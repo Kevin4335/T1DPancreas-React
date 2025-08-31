@@ -338,10 +338,24 @@ hex_to_string <- function(hex_str) {
   })
 }
 
+
+allowed_origins <- c(
+  "http://t1dspatialomics.com",
+  "http://www.t1dspatialomics.com",
+  "http://128.84.40.121"
+)
+
+
+
 app <- list(
   call = function(req) {
     tryCatch({
-
+      origin <- req$HTTP_ORIGIN
+      if (!is.null(origin) && origin %in% allowed_origins) {
+        cors_origin <- origin
+      } else {
+        cors_origin <- '*'
+      }
       path <- req$PATH_INFO
       method <- req$REQUEST_METHOD
 
@@ -350,7 +364,7 @@ app <- list(
         return(list(
           status = 204L,
           headers = list(
-            'Access-Control-Allow-Origin' = 'http://128.84.40.121:9035',
+            'Access-Control-Allow-Origin' = cors_origin,
             'Access-Control-Allow-Methods' = 'GET, POST, OPTIONS',
             'Access-Control-Allow-Headers' = 'Content-Type',
             'Access-Control-Max-Age' = '86400'
@@ -366,7 +380,7 @@ app <- list(
           status = 200L,
           headers = list(
             'Content-Type' = 'application/json',
-            'Access-Control-Allow-Origin' = 'http://128.84.40.121:9035'
+            'Access-Control-Allow-Origin' = cors_origin
           ),
           body = toJSON(genes)
         ))
@@ -379,7 +393,7 @@ app <- list(
       if (is.null(json_data)) {
         return(list(
           status = 400L,
-          headers = list('Access-Control-Allow-Origin' = 'http://128.84.40.121:9035'),
+          headers = list('Access-Control-Allow-Origin' = cors_origin),
           body = toJSON(list(error = "Failed to decode hex payload"))
         ))
       }
@@ -394,7 +408,7 @@ app <- list(
       if (is.null(data)) {
         return(list(
           status = 400L,
-          headers = list('Access-Control-Allow-Origin' = 'http://128.84.40.121:9035'),
+          headers = list('Access-Control-Allow-Origin' = cors_origin),
           body = toJSON(list(error = "Invalid JSON data"))
         ))
       }
@@ -411,7 +425,7 @@ app <- list(
         cat("Unknown function flag:", f, "\n")
         return(list(
           status = 400L,
-          headers = list('Access-Control-Allow-Origin' = 'http://128.84.40.121:9035'),
+          headers = list('Access-Control-Allow-Origin' = cors_origin),
           body = toJSON(list(error = "Unknown function flag"))
         ))
       }
@@ -419,7 +433,7 @@ app <- list(
       return(list(
         status = 200L,
         headers = list(
-          'Access-Control-Allow-Origin' = 'http://128.84.40.121:9035',
+          'Access-Control-Allow-Origin' = cors_origin,
           'Content-Type' = 'application/json'
         ),
         body = toJSON(list(status = "finished", img = img_data))
@@ -430,7 +444,7 @@ app <- list(
       return(list(
         status = 500L,
         headers = list(
-          'Access-Control-Allow-Origin' = 'http://128.84.40.121:9035',
+          'Access-Control-Allow-Origin' = cors_origin,
           'Content-Type' = 'application/json'
         ),
         body = toJSON(list(error = "Internal server error"))
