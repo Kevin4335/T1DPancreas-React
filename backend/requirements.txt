@@ -1,3 +1,4 @@
+Flask>=3.0.0
 PyMuPDF==1.23.26
 myBasics==1.0.0
 myHttp==1.2.0

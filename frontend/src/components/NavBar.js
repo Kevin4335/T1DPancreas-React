@@ -111,7 +111,7 @@ function NavBar() {
             </NavLink>
           );
         })}
-        <Box sx={{ width: 1, height: 18, bgcolor: 'divider', mx: 0.75 }} />
+        <Box sx={{ width: '1px', height: 18, bgcolor: 'divider', mx: 0.75, flexShrink: 0 }} />
         <NavLink to="/Help" style={{ textDecoration: 'none' }}>
           <Box
             sx={{

@@ -2,9 +2,7 @@ import React, { useState } from 'react';
 import {
   Box,
   Typography,
-  Container,
   Button,
-  Grid,
   Card,
   CardContent,
   TextField,
@@ -94,12 +92,10 @@ function Home() {
     <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: 'background.default' }}>
       <NavBar />
 
+      <Box sx={{ maxWidth: 1200, mx: 'auto', px: { xs: 2, md: 7 } }}>
       {/* Hero */}
       <Box
         sx={{
-          maxWidth: 1200,
-          mx: 'auto',
-          px: { xs: 2, md: 7 },
           pt: 9,
           pb: 8,
           display: 'grid',
@@ -300,8 +296,8 @@ function Home() {
       </Box>
 
       {/* Disease stages */}
-      <Box sx={{ maxWidth: 1200, mx: 'auto', px: { xs: 2, md: 7 }, pb: 9 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3.5 }}>
+      <Box sx={{ pb: 9 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3.5, width: '100%' }}>
           <Typography
             sx={{
               fontSize: '0.7rem',
@@ -310,42 +306,51 @@ function Home() {
               textTransform: 'uppercase',
               color: 'text.disabled',
               whiteSpace: 'nowrap',
+              flexShrink: 0,
             }}
           >
             Disease Progression
           </Typography>
-          <Box sx={{ flex: 1, height: 1, bgcolor: 'divider' }} />
+          <Box sx={{ flex: 1, height: '1px', minWidth: 0, bgcolor: 'divider' }} />
         </Box>
-        <Grid container spacing={1.75}>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4, 1fr)',
+            gap: 1.75,
+            alignItems: 'stretch',
+          }}
+        >
           {STAGES.map((stage) => (
-            <Grid item xs={12} sm={6} md={3} key={stage.id}>
-              <Card
+            <Card
+              key={stage.id}
+              sx={{
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 1.5,
+                p: 3,
+                position: 'relative',
+                overflow: 'hidden',
+                transition: 'all 0.2s',
+                minHeight: 0,
+                '&:hover': {
+                  boxShadow: '0 6px 24px rgba(0,0,0,0.08)',
+                  transform: 'translateY(-2px)',
+                },
+                '&::before': {
+                  content: '""',
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: 3,
+                  bgcolor: stage.borderColor,
+                },
+              }}
+            >
+              <Typography
                 sx={{
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  borderRadius: 1.5,
-                  p: 3,
-                  position: 'relative',
-                  overflow: 'hidden',
-                  transition: 'all 0.2s',
-                  '&:hover': {
-                    boxShadow: '0 6px 24px rgba(0,0,0,0.08)',
-                    transform: 'translateY(-2px)',
-                  },
-                  '&::before': {
-                    content: '""',
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    height: 3,
-                    bgcolor: stage.borderColor,
-                  },
-                }}
-              >
-                <Typography
-                  sx={{
-                    fontFamily: 'JetBrains Mono, monospace',
+                  fontFamily: 'JetBrains Mono, monospace',
                     fontSize: '0.65rem',
                     color: 'text.disabled',
                     letterSpacing: '0.8px',
@@ -391,16 +396,15 @@ function Home() {
                     }}
                   />
                   {stage.subjects}
-                </Box>
-              </Card>
-            </Grid>
+              </Box>
+            </Card>
           ))}
-        </Grid>
+        </Box>
       </Box>
 
       {/* Platform capabilities */}
-      <Box sx={{ maxWidth: 1200, mx: 'auto', px: { xs: 2, md: 7 }, pb: 9 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3.5 }}>
+      <Box sx={{ pb: 9 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3.5, width: '100%' }}>
           <Typography
             sx={{
               fontSize: '0.7rem',
@@ -409,66 +413,73 @@ function Home() {
               textTransform: 'uppercase',
               color: 'text.disabled',
               whiteSpace: 'nowrap',
+              flexShrink: 0,
             }}
           >
             Platform Capabilities
           </Typography>
-          <Box sx={{ flex: 1, height: 1, bgcolor: 'divider' }} />
+          <Box sx={{ flex: 1, height: '1px', minWidth: 0, bgcolor: 'divider' }} />
         </Box>
-        <Grid container spacing={1.75}>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: 1.75,
+            alignItems: 'stretch',
+          }}
+        >
           {FEATURES.map((feat) => (
-            <Grid item xs={12} md={4} key={feat.title}>
-              <Card
+            <Card
+              key={feat.title}
+              sx={{
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 1.5,
+                p: 3.5,
+                transition: 'all 0.2s',
+                minHeight: 0,
+                '&:hover': {
+                  boxShadow: '0 4px 16px rgba(0,0,0,0.07)',
+                  borderColor: 'accent.border',
+                },
+              }}
+            >
+              <Box
                 sx={{
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  borderRadius: 1.5,
-                  p: 3.5,
-                  transition: 'all 0.2s',
-                  height: '100%',
-                  '&:hover': {
-                    boxShadow: '0 4px 16px rgba(0,0,0,0.07)',
-                    borderColor: 'accent.border',
-                  },
+                  width: 40,
+                  height: 40,
+                  bgcolor: 'primary.light',
+                  borderRadius: 1.125,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.1rem',
+                  mb: 2,
                 }}
               >
-                <Box
-                  sx={{
-                    width: 40,
-                    height: 40,
-                    bgcolor: 'primary.light',
-                    borderRadius: 1.125,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '1.1rem',
-                    mb: 2,
-                  }}
-                >
-                  {feat.icon}
-                </Box>
-                <Typography
-                  sx={{
-                    fontFamily: '"Source Serif 4", serif',
-                    fontSize: '1rem',
-                    fontWeight: 700,
-                    color: 'navy.main',
-                    mb: 1,
-                  }}
-                >
-                  {feat.title}
-                </Typography>
-                <Typography sx={{ fontSize: '0.82rem', color: 'text.secondary', lineHeight: 1.65 }}>
-                  {feat.desc}
-                </Typography>
-              </Card>
-            </Grid>
+                {feat.icon}
+              </Box>
+              <Typography
+                sx={{
+                  fontFamily: '"Source Serif 4", serif',
+                  fontSize: '1rem',
+                  fontWeight: 700,
+                  color: 'navy.main',
+                  mb: 1,
+                }}
+              >
+                {feat.title}
+              </Typography>
+              <Typography sx={{ fontSize: '0.82rem', color: 'text.secondary', lineHeight: 1.65 }}>
+                {feat.desc}
+              </Typography>
+            </Card>
           ))}
-        </Grid>
+        </Box>
       </Box>
 
       {/* Citation */}
-      <Box sx={{ maxWidth: 1200, mx: 'auto', px: { xs: 2, md: 7 }, pb: 9 }}>
+      <Box sx={{ pb: 9 }}>
         <Box
           sx={{
             bgcolor: 'action.hover',
@@ -510,8 +521,8 @@ function Home() {
       </Box>
 
       {/* Explore with AI */}
-      <Box sx={{ maxWidth: 1200, mx: 'auto', px: { xs: 2, md: 7 }, pb: 9 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3.5 }}>
+      <Box sx={{ pb: 9 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3.5, width: '100%' }}>
           <Typography
             sx={{
               fontSize: '0.7rem',
@@ -520,16 +531,17 @@ function Home() {
               textTransform: 'uppercase',
               color: 'text.disabled',
               whiteSpace: 'nowrap',
+              flexShrink: 0,
             }}
           >
             Try AI
           </Typography>
-          <Box sx={{ flex: 1, height: 1, bgcolor: 'divider' }} />
+          <Box sx={{ flex: 1, height: '1px', minWidth: 0, bgcolor: 'divider' }} />
         </Box>
         <Typography
           sx={{
             fontFamily: '"Source Serif 4", serif',
-            fontSize: '1.45rem',
+            fontSize: '1.15rem',
             fontWeight: 700,
             color: 'navy.main',
             mb: 3,
@@ -537,33 +549,41 @@ function Home() {
         >
           Ask the atlas
         </Typography>
-        <Grid container spacing={2} sx={{ mb: 3 }}>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: 2,
+            mb: 3,
+            alignItems: 'stretch',
+          }}
+        >
           {PROMPTS.map((prompt, idx) => (
-            <Grid item xs={12} md={4} key={idx}>
-              <Card
-                variant="outlined"
-                sx={{
-                  borderColor: 'divider',
-                  borderRadius: 1.5,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  '&:hover': {
-                    borderColor: 'primary.light',
-                    bgcolor: 'primary.light',
-                    boxShadow: 1,
-                  },
-                }}
-                onClick={() => navigate('/AIChat', { state: { chatInput: prompt } })}
-              >
-                <CardContent sx={{ py: 2, px: 2.5 }}>
-                  <Typography sx={{ fontSize: '0.9rem', fontWeight: 500, color: 'text.primary' }}>
-                    {prompt}
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
+            <Card
+              key={idx}
+              variant="outlined"
+              sx={{
+                borderColor: 'divider',
+                borderRadius: 1.5,
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                minHeight: 0,
+                '&:hover': {
+                  borderColor: 'primary.light',
+                  bgcolor: 'primary.light',
+                  boxShadow: 1,
+                },
+              }}
+              onClick={() => navigate('/AIChat', { state: { chatInput: prompt } })}
+            >
+              <CardContent sx={{ py: 1.5, px: 2 }}>
+                <Typography sx={{ fontSize: '0.8rem', fontWeight: 500, color: 'text.primary' }}>
+                  {prompt}
+                </Typography>
+              </CardContent>
+            </Card>
           ))}
-        </Grid>
+        </Box>
         <Box
           sx={{
             display: 'flex',
@@ -601,11 +621,21 @@ function Home() {
             variant="contained"
             color="primary"
             onClick={() => chatInput.trim() && navigate('/AIChat', { state: { chatInput } })}
-            sx={{ m: 1, minWidth: 48, borderRadius: 2 }}
+            sx={{
+              m: 1,
+              minWidth: 40,
+              minHeight: 40,
+              width: 40,
+              height: 40,
+              borderRadius: '50%',
+              p: 0,
+            }}
           >
-            <SendIcon />
+            <SendIcon sx={{ fontSize: 20 }} />
           </Button>
         </Box>
+      </Box>
+
       </Box>
 
       <Footer />
