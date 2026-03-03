@@ -1,271 +1,616 @@
-import React from 'react';
-import { Button, Typography, Container, TextField, Grid, Box, Card, CardActionArea, CardContent } from '@mui/material';
+import React, { useState } from 'react';
+import {
+  Box,
+  Typography,
+  Container,
+  Button,
+  Grid,
+  Card,
+  CardContent,
+  TextField,
+} from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
-import Navbar from './components/NavBar';
+import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
+import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
+import NavBar from './components/NavBar';
 import Footer from './components/Footer';
-import { useTheme } from '@mui/material/styles';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+
+const STATS = [
+  { label: 'Total Subjects', hint: '4 disease stages · 5 each', value: '20' },
+  { label: 'Cells Profiled', hint: 'single-cell resolution', value: '1.14M' },
+  { label: 'Fields of View', hint: 'spatial FOVs', value: '408' },
+  { label: 'Genes Measured', hint: 'per cell panel', value: '1,000' },
+];
+
+const STAGES = [
+  {
+    id: 'ctrl',
+    index: 'STAGE 01',
+    title: 'Control',
+    desc: 'Healthy donors with no autoimmunity or pancreatic pathology.',
+    subjects: '5 subjects',
+    borderColor: '#059669',
+    pillBg: '#ecfdf5',
+  },
+  {
+    id: 'ab1',
+    index: 'STAGE 02',
+    title: 'AB⁺LN⁻',
+    desc: 'Autoantibody-positive without lymphocyte infiltration in islets.',
+    subjects: '5 subjects',
+    borderColor: '#d97706',
+    pillBg: '#fffbeb',
+  },
+  {
+    id: 'ab2',
+    index: 'STAGE 03',
+    title: 'AB⁺LN⁺',
+    desc: 'Autoantibody-positive with active lymphocyte infiltration (insulitis).',
+    subjects: '5 subjects',
+    borderColor: '#ea580c',
+    pillBg: '#fff7ed',
+  },
+  {
+    id: 't1d',
+    index: 'STAGE 04',
+    title: 'Clinical T1D',
+    desc: 'Established clinical type 1 diabetes diagnosis.',
+    subjects: '5 subjects',
+    borderColor: '#dc2626',
+    pillBg: '#fef2f2',
+  },
+];
+
+const FEATURES = [
+  {
+    icon: '🧬',
+    title: 'Spatial Gene Expression',
+    desc: 'Visualize 1,000-gene panels with full spatial context across 408 FOVs from human pancreatic tissue sections.',
+  },
+  {
+    icon: '🤖',
+    title: 'AI-Powered Analysis',
+    desc: 'Chat with AI to explore cell-type-specific expression changes and cross-stage differential analysis.',
+  },
+  {
+    icon: '🔬',
+    title: 'Single-Cell Resolution',
+    desc: 'Over 1.1M individually profiled cells with cell type annotations and spatial coordinates preserved.',
+  },
+];
+
+const PROMPTS = [
+  'Show me the gene expression for INS in Beta cells.',
+  'What is the cell composition in FOV 101 for a T1D donor?',
+  'Compare gene expression of GCG between Control and T1D.',
+];
 
 function Home() {
-  const theme = useTheme();
   const navigate = useNavigate();
-  const location = useLocation();
-  const [chatInput, setChatInput] = useState(location.state?.chatInput || '');
-
-  // Pre-made chat prompts
-  const prompts = [
-    "Show me the gene expression for INS in Beta cells.",
-    "What is the cell composition in FOV 101 for a T1D donor?",
-    "Compare gene expression of GCG between Control and T1D."
-  ];
+  const [chatInput, setChatInput] = useState('');
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-        <Navbar />
-        <Container sx={{ flex: 1 }}>
-            <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold', marginTop: '2rem', textAlign: 'center'}}>
-                Explore the T1D Spatial Atlas!
+    <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: 'background.default' }}>
+      <NavBar />
+
+      {/* Hero */}
+      <Box
+        sx={{
+          maxWidth: 1200,
+          mx: 'auto',
+          px: { xs: 2, md: 7 },
+          pt: 9,
+          pb: 8,
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', md: '1fr 380px' },
+          gap: { xs: 4, md: 9 },
+          alignItems: 'start',
+        }}
+      >
+        <Box>
+          <Box
+            sx={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 1,
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              letterSpacing: '0.8px',
+              textTransform: 'uppercase',
+              color: 'primary.main',
+              mb: 2.5,
+            }}
+          >
+            <Box
+              sx={{
+                width: 24,
+                height: 2,
+                bgcolor: 'primary.main',
+                borderRadius: '2px',
+              }}
+            />
+            Interactive Research Platform
+          </Box>
+          <Typography
+            variant="h1"
+            sx={{
+              fontFamily: '"Source Serif 4", serif',
+              fontSize: { xs: '2rem', sm: 'clamp(2.2rem, 4vw, 3rem)' },
+              fontWeight: 700,
+              lineHeight: 1.15,
+              letterSpacing: '-0.5px',
+              color: 'navy.main',
+              mb: 2.5,
+            }}
+          >
+            Explore the <Box component="em" sx={{ fontStyle: 'italic', color: 'primary.main' }}>T1D Spatial</Box>
+            <br />
+            Atlas
+          </Typography>
+          <Typography
+            sx={{
+              fontSize: '1rem',
+              color: 'text.secondary',
+              lineHeight: 1.75,
+              maxWidth: 520,
+              mb: 4.5,
+            }}
+          >
+            An AI-powered platform for analyzing CosMX (NanoString) spatial transcriptomics data from human pancreatic tissues. Single-cell spatial datasets from 20 donors representing key stages of type 1 diabetes progression.
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<PlayArrowRoundedIcon sx={{ fontSize: 20 }} />}
+              onClick={() => navigate('/FOV')}
+              sx={{
+                fontWeight: 600,
+                fontSize: '0.875rem',
+                px: 3,
+                py: 1.5,
+                borderRadius: 1,
+                textTransform: 'none',
+                boxShadow: 1,
+                '&:hover': {
+                  boxShadow: '0 4px 14px rgba(37,99,235,0.3)',
+                  transform: 'translateY(-1px)',
+                },
+              }}
+            >
+              Launch Explorer
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<DescriptionOutlinedIcon sx={{ fontSize: 20 }} />}
+              onClick={() => navigate('/Help')}
+              sx={{
+                fontWeight: 500,
+                fontSize: '0.875rem',
+                px: 3,
+                py: 1.5,
+                borderRadius: 1,
+                borderColor: 'border.light',
+                color: 'text.primary',
+                textTransform: 'none',
+                '&:hover': {
+                  borderColor: 'accent.border',
+                  color: 'primary.main',
+                  bgcolor: 'primary.light',
+                },
+              }}
+            >
+              Documentation
+            </Button>
+          </Box>
+        </Box>
+
+        {/* Stats panel */}
+        <Card
+          sx={{
+            border: '1px solid',
+            borderColor: 'divider',
+            borderRadius: 2,
+            overflow: 'hidden',
+            boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+            position: { md: 'sticky' },
+            top: { md: 84 },
+          }}
+        >
+          <Box
+            sx={{
+              py: 2,
+              px: 3,
+              borderBottom: '1px solid',
+              borderColor: 'divider',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <Typography
+              sx={{
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                color: 'text.secondary',
+                letterSpacing: '0.7px',
+                textTransform: 'uppercase',
+              }}
+            >
+              Dataset Summary
             </Typography>
+            <Box
+              component="span"
+              sx={{
+                fontFamily: 'JetBrains Mono, monospace',
+                fontSize: '0.65rem',
+                bgcolor: 'primary.light',
+                color: 'primary.main',
+                px: 1,
+                py: 0.375,
+                borderRadius: 0.5,
+                fontWeight: 500,
+              }}
+            >
+              CosMX · v1.0
+            </Box>
+          </Box>
+          <Box sx={{ py: 1 }}>
+            {STATS.map((row, i) => (
+              <Box
+                key={row.label}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  py: 1.75,
+                  px: 3,
+                  borderTop: i === 0 ? 'none' : '1px solid',
+                  borderColor: 'divider',
+                  '&:hover': { bgcolor: 'background.default' },
+                }}
+              >
+                <Box>
+                  <Typography sx={{ fontSize: '0.82rem', fontWeight: 500, color: 'text.primary' }}>
+                    {row.label}
+                  </Typography>
+                  <Typography
+                    sx={{ fontSize: '0.7rem', color: 'text.disabled', fontFamily: 'JetBrains Mono, monospace' }}
+                  >
+                    {row.hint}
+                  </Typography>
+                </Box>
+                <Typography
+                  sx={{
+                    fontFamily: '"Source Serif 4", serif',
+                    fontSize: '1.55rem',
+                    fontWeight: 700,
+                    color: 'navy.main',
+                    letterSpacing: '-0.5px',
+                    lineHeight: 1,
+                  }}
+                >
+                  {row.value}
+                </Typography>
+              </Box>
+            ))}
+          </Box>
+        </Card>
+      </Box>
 
-            {/* Intro Information */}
-            <Grid container spacing={3} width='100%' height='100%' marginTop={'2vw'}>
-                <Grid size={6}>
-                    <item>
-                      <Typography variant="body1" gutterBottom>
-                        <b>T1D Spatial Atlas</b> is an interactive, AI-powered platform for analyzing CosMX (NanoString) spatial transcriptomics data from human pancreatic tissues.
-                      </Typography>
-                      <Typography variant="body1" gutterBottom>
-                        It features single-cell spatial datasets from 19 donors, representing key stages of type 1 diabetes progression: healthy controls, autoantibody-positive individuals without lymphocyte infiltration (AAB⁺LP⁻), those with infiltration (AAB⁺LP⁺), and individuals with clinical T1D.
-                      </Typography>
-                      <Typography variant="body1" gutterBottom>
-                        This platform enables detailed exploration of spatial gene expression patterns and cell-type–specific changes across these distinct disease stages, providing a powerful resource for uncovering mechanisms of T1D pathogenesis.
-                      </Typography>
-                    </item>
-                </Grid>
-                <Grid size={6}>
-                    <Grid container spacing={3} sx={{ mt: 2 }}>
-                    <Grid size={6}>
-                      <item>
-                        <Card
-                          sx={{
-                            p: 2,
-                            borderRadius: '1rem',
-                            textAlign: 'center',
-                            height: '100%',
-                          }}
-                        >
-                          <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                            Subjects
-                          </Typography>
-                          
-                          <Typography variant="body1" sx={{ color: 'text.primary', mt: 0.5 }}>
-                            Control, AB⁺LN⁻, AB⁺LN⁺, T1D
-                          </Typography>
-                        </Card>
-                      </item>
-                    </Grid>
-
-                    <Grid size={6}>
-                      <item>
-                        <Card
-                          sx={{
-                            p: 2,
-                            borderRadius: '1rem',
-                            textAlign: 'center',
-                            height: '100%',
-                          }}
-                        >
-                          <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                            Total Cells
-                          </Typography>
-                          <Typography variant="h5" sx={{ fontWeight: 'bold', mt: 1 }}>
-                            1,139,248
-                          </Typography>
-                        </Card>
-                      </item>
-                    </Grid>
-
-                    <Grid size={6}>
-                      <item>
-                        <Card
-                          sx={{
-                            p: 2,
-                            borderRadius: '1rem',
-                            textAlign: 'center',
-                            height: '100%',
-                          }}
-                        >
-                          <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                            FOVs
-                          </Typography>
-                          <Typography variant="h5" sx={{ fontWeight: 'bold', mt: 1 }}>
-                            408
-                          </Typography>
-                        </Card>
-                      </item>
-                    </Grid>
-
-                    <Grid size={6}>
-                      <item>
-                        <Card
-                          sx={{
-                            p: 2,
-                            borderRadius: '1rem',
-                            textAlign: 'center',
-                            height: '100%',
-                          }}
-                        >
-                          <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                            Genes
-                          </Typography>
-                          <Typography variant="h5" sx={{ fontWeight: 'bold', mt: 1 }}>
-                            1000
-                          </Typography>
-                        </Card>
-                      </item>
-                    </Grid>
-                  </Grid>
-                </Grid>
+      {/* Disease stages */}
+      <Box sx={{ maxWidth: 1200, mx: 'auto', px: { xs: 2, md: 7 }, pb: 9 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3.5 }}>
+          <Typography
+            sx={{
+              fontSize: '0.7rem',
+              fontWeight: 600,
+              letterSpacing: '1px',
+              textTransform: 'uppercase',
+              color: 'text.disabled',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Disease Progression
+          </Typography>
+          <Box sx={{ flex: 1, height: 1, bgcolor: 'divider' }} />
+        </Box>
+        <Grid container spacing={1.75}>
+          {STAGES.map((stage) => (
+            <Grid item xs={12} sm={6} md={3} key={stage.id}>
+              <Card
+                sx={{
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 1.5,
+                  p: 3,
+                  position: 'relative',
+                  overflow: 'hidden',
+                  transition: 'all 0.2s',
+                  '&:hover': {
+                    boxShadow: '0 6px 24px rgba(0,0,0,0.08)',
+                    transform: 'translateY(-2px)',
+                  },
+                  '&::before': {
+                    content: '""',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: 3,
+                    bgcolor: stage.borderColor,
+                  },
+                }}
+              >
+                <Typography
+                  sx={{
+                    fontFamily: 'JetBrains Mono, monospace',
+                    fontSize: '0.65rem',
+                    color: 'text.disabled',
+                    letterSpacing: '0.8px',
+                    mb: 1.25,
+                  }}
+                >
+                  {stage.index}
+                </Typography>
+                <Typography
+                  sx={{
+                    fontFamily: '"Source Serif 4", serif',
+                    fontSize: '1.1rem',
+                    fontWeight: 700,
+                    color: stage.borderColor,
+                    mb: 1.25,
+                  }}
+                >
+                  {stage.title}
+                </Typography>
+                <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary', lineHeight: 1.6, mb: 2.25 }}>
+                  {stage.desc}
+                </Typography>
+                <Box
+                  sx={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 0.75,
+                    fontSize: '0.72rem',
+                    fontWeight: 600,
+                    px: 1.25,
+                    py: 0.5,
+                    borderRadius: '100px',
+                    bgcolor: stage.pillBg,
+                    color: stage.borderColor,
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: 5,
+                      height: 5,
+                      borderRadius: '50%',
+                      bgcolor: 'currentColor',
+                    }}
+                  />
+                  {stage.subjects}
+                </Box>
+              </Card>
             </Grid>
+          ))}
+        </Grid>
+      </Box>
 
-            {/* Pre-made prompt cards in a single row */}
-            <Grid container spacing={2} justifyContent="center" alignItems="stretch" sx={{ mt: 3, mb: 2 }}>
-              {prompts.map((prompt, idx) => (
-                <Grid size={4} key={idx}>
-                  <item>
-                    <Card
-                      sx={{
-                        width: '100%',
-                        height: '100%',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'center',
-                        borderRadius: '0.75rem',
-                        backgroundColor: theme.palette.SiteSecondaryColor.main,
-                        color: theme.palette.SiteSecondaryColor.contrastText,
-                        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)',
-                        transition: 'transform 0.2s ease, box-shadow 0.2s ease, background-color 0.3s ease',
-                        '&:hover': {
-                          transform: 'translateY(-2px)',
-                          boxShadow: '0 6px 20px rgba(0, 0, 0, 0.12)',
-                          backgroundColor: theme.palette.SiteSecondaryColor.hover,
-                        },
-                        '&:active': {
-                          transform: 'scale(0.98)',
-                          boxShadow: '0 3px 10px rgba(0, 0, 0, 0.1)',
-                          backgroundColor: theme.palette.SiteSecondaryColor.active,
-                        },
-                      }}
-                      variant="outlined"
-                    >
-                      <CardActionArea
-                        sx={{ height: '100%' }}
-                        onClick={() => navigate('/AIChat', { state: { chatInput: prompt } })}
-                      >
-                        <CardContent
-                          sx={{
-                            flexGrow: 1,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            px: 3,
-                          }}
-                        >
-                          <Typography variant="body1" sx={{ textAlign: 'center', fontWeight: 500 }}>
-                            {prompt}
-                          </Typography>
-                        </CardContent>
-                      </CardActionArea>
-                    </Card>
-                  </item>
-                </Grid>
-              ))}
+      {/* Platform capabilities */}
+      <Box sx={{ maxWidth: 1200, mx: 'auto', px: { xs: 2, md: 7 }, pb: 9 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3.5 }}>
+          <Typography
+            sx={{
+              fontSize: '0.7rem',
+              fontWeight: 600,
+              letterSpacing: '1px',
+              textTransform: 'uppercase',
+              color: 'text.disabled',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Platform Capabilities
+          </Typography>
+          <Box sx={{ flex: 1, height: 1, bgcolor: 'divider' }} />
+        </Box>
+        <Grid container spacing={1.75}>
+          {FEATURES.map((feat) => (
+            <Grid item xs={12} md={4} key={feat.title}>
+              <Card
+                sx={{
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 1.5,
+                  p: 3.5,
+                  transition: 'all 0.2s',
+                  height: '100%',
+                  '&:hover': {
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.07)',
+                    borderColor: 'accent.border',
+                  },
+                }}
+              >
+                <Box
+                  sx={{
+                    width: 40,
+                    height: 40,
+                    bgcolor: 'primary.light',
+                    borderRadius: 1.125,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1.1rem',
+                    mb: 2,
+                  }}
+                >
+                  {feat.icon}
+                </Box>
+                <Typography
+                  sx={{
+                    fontFamily: '"Source Serif 4", serif',
+                    fontSize: '1rem',
+                    fontWeight: 700,
+                    color: 'navy.main',
+                    mb: 1,
+                  }}
+                >
+                  {feat.title}
+                </Typography>
+                <Typography sx={{ fontSize: '0.82rem', color: 'text.secondary', lineHeight: 1.65 }}>
+                  {feat.desc}
+                </Typography>
+              </Card>
             </Grid>
-            
-            {/* Search bar for AI */}
-            <Grid container spacing={3} width='100%' height='100%'>
-                <Grid size={12}>
-                    <item>
-                      <Box display="flex" justifyContent="center" mt={3}>
-                        <Box
-                          sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            width: '100%',
-                            backgroundColor: '#fff',
-                            border: '1px solid #118ab2',
-                            borderRadius: '10rem 10rem 10rem 10rem'
-                          }}
-                        >
-                          <TextField
-                            variant="outlined"
-                            placeholder="Ask AI anything..."
-                            value={chatInput}
-                            onChange={(e) => setChatInput(e.target.value)}
-                            fullWidth
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter' && chatInput.trim()) {
-                                navigate('/AIChat', { state: { chatInput } });
-                              }
-                            }}
-                            sx={{
-                              ml: 1.5,
-                              height:'100%',
-                              '& .MuiOutlinedInput-root': {
-                                borderRadius: '999px',
-                                backgroundColor: '#fff',
-                                //transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
-                                '& fieldset': {
-                                  borderColor: '#fff',
-                                },
-                                '&:hover fieldset': {
-                                  borderColor: '#fff',
-                                },
-                                '&.Mui-focused fieldset': {
-                                  borderColor: '#fff',
-                                  //boxShadow: `0 0 0 2px ${theme.palette.SiteSecondaryColor.main}33`,
-                                },
-                              },
-                            }}
-                          />
+          ))}
+        </Grid>
+      </Box>
 
-                          <Button
-                            variant="contained"
-                            color="SiteSecondaryColor"
-                            onClick={() => {
-                              if (chatInput.trim()) {
-                                navigate('/AIChat', { state: { chatInput } });
-                              }
-                            }}
-                            sx={{
-                              ml: 1.5,
-                              mr: 1.5,
-                              height: '75%',
-                              borderRadius: 28,
-                              transition: 'all 0.05s ease',
-                              boxShadow: '0 1px 6px rgba(0, 0, 0, 0.08)',
-                              '&:hover': {
-                                backgroundColor: theme.palette.SiteSecondaryColor.hover,
-                                boxShadow: '0 3px 10px rgba(0, 0, 0, 0.1)',
-                                transform: 'scale(1.02)',
-                              },
-                              '&:active': {
-                                transform: 'scale(0.99)',
-                              },
-                            }}
-                          >
-                            <SendIcon />
-                          </Button>
-                        </Box>
-                      </Box>
-                    </item>
-                </Grid>
+      {/* Citation */}
+      <Box sx={{ maxWidth: 1200, mx: 'auto', px: { xs: 2, md: 7 }, pb: 9 }}>
+        <Box
+          sx={{
+            bgcolor: 'action.hover',
+            border: '1px solid',
+            borderColor: 'divider',
+            borderLeft: '3px solid',
+            borderLeftColor: 'primary.main',
+            borderRadius: '0 10px 10px 0',
+            py: 2.5,
+            px: 3.5,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 3,
+          }}
+        >
+          <Typography
+            sx={{
+              fontSize: '0.7rem',
+              fontWeight: 700,
+              letterSpacing: '1px',
+              textTransform: 'uppercase',
+              color: 'primary.main',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Citation
+          </Typography>
+          <Typography
+            sx={{
+              fontSize: '0.82rem',
+              color: 'text.secondary',
+              fontFamily: 'JetBrains Mono, monospace',
+              lineHeight: 1.5,
+            }}
+          >
+            T1D Spatial Atlas · CosMX (NanoString) · Human Pancreatic Tissue · 20 Donors · 1,139,248 Cells · 408 FOVs · 1,000 Genes
+          </Typography>
+        </Box>
+      </Box>
+
+      {/* Explore with AI */}
+      <Box sx={{ maxWidth: 1200, mx: 'auto', px: { xs: 2, md: 7 }, pb: 9 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3.5 }}>
+          <Typography
+            sx={{
+              fontSize: '0.7rem',
+              fontWeight: 600,
+              letterSpacing: '1px',
+              textTransform: 'uppercase',
+              color: 'text.disabled',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Try AI
+          </Typography>
+          <Box sx={{ flex: 1, height: 1, bgcolor: 'divider' }} />
+        </Box>
+        <Typography
+          sx={{
+            fontFamily: '"Source Serif 4", serif',
+            fontSize: '1.45rem',
+            fontWeight: 700,
+            color: 'navy.main',
+            mb: 3,
+          }}
+        >
+          Ask the atlas
+        </Typography>
+        <Grid container spacing={2} sx={{ mb: 3 }}>
+          {PROMPTS.map((prompt, idx) => (
+            <Grid item xs={12} md={4} key={idx}>
+              <Card
+                variant="outlined"
+                sx={{
+                  borderColor: 'divider',
+                  borderRadius: 1.5,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  '&:hover': {
+                    borderColor: 'primary.light',
+                    bgcolor: 'primary.light',
+                    boxShadow: 1,
+                  },
+                }}
+                onClick={() => navigate('/AIChat', { state: { chatInput: prompt } })}
+              >
+                <CardContent sx={{ py: 2, px: 2.5 }}>
+                  <Typography sx={{ fontSize: '0.9rem', fontWeight: 500, color: 'text.primary' }}>
+                    {prompt}
+                  </Typography>
+                </CardContent>
+              </Card>
             </Grid>
-        </Container>
-        <Footer />
-    </div>
-  )
+          ))}
+        </Grid>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            maxWidth: 640,
+            mx: 'auto',
+            border: '1px solid',
+            borderColor: 'primary.main',
+            borderRadius: 10,
+            overflow: 'hidden',
+            bgcolor: 'background.paper',
+          }}
+        >
+          <TextField
+            placeholder="Ask AI anything..."
+            value={chatInput}
+            onChange={(e) => setChatInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && chatInput.trim()) {
+                navigate('/AIChat', { state: { chatInput } });
+              }
+            }}
+            variant="outlined"
+            fullWidth
+            size="small"
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 0,
+                bgcolor: 'background.paper',
+                '& fieldset': { border: 'none' },
+              },
+            }}
+          />
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() => chatInput.trim() && navigate('/AIChat', { state: { chatInput } })}
+            sx={{ m: 1, minWidth: 48, borderRadius: 2 }}
+          >
+            <SendIcon />
+          </Button>
+        </Box>
+      </Box>
+
+      <Footer />
+    </Box>
+  );
 }
 
 export default Home;
