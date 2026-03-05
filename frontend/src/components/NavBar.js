@@ -26,7 +26,6 @@ const LogoMark = () => (
 const navItems = [
   { to: '/', label: 'Home' },
   { to: '/AIChat', label: 'Chat with AI' },
-  { to: '/FOV', label: 'Image' },
   { to: '/FOV', label: 'FOV Viewer' },
   { to: '/GeneExpression', label: 'Gene Expression' },
 ];
