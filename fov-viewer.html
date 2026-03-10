@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FOV Viewer · T1D Spatial Atlas</title>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,300;0,400;0,600;0,700;1,400&family=Montserrat:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+<style>
+  /* ── Layout ─────────────────────────────── */
+  .viewer-layout {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 32px 56px 72px;
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 0;
+  }
+
+  .left-col {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    position: sticky;
+    top: 84px;
+    align-self: start;
+    border-right: 1px solid var(--border);
+    padding-right: 32px;
+    margin-right: 32px;
+  }
+
+  /* Control panel */
+  .ctrl-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .ctrl-head {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--muted);
+    letter-spacing: 0.7px;
+    text-transform: uppercase;
+    background: var(--surface2);
+  }
+
+  .ctrl-section {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .ctrl-section:last-child { border-bottom: none; }
+
+  .ctrl-section-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--light);
+    letter-spacing: 0.7px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .ctrl-select {
+    width: 100%;
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    padding: 7px 10px;
+    font-size: 0.82rem;
+    font-family: 'Inter', sans-serif;
+    color: var(--text);
+    background: var(--bg);
+    outline: none;
+    cursor: pointer;
+  }
+  .ctrl-select:focus { border-color: var(--accent); }
+
+  .legend-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.78rem;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+
+  .legend-swatch {
+    width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0;
+  }
+
+  /* Gene Display warning */
+  .gene-display-warn {
+    display: none;
+    font-size: 0.68rem;
+    color: var(--muted);
+    line-height: 1.55;
+    margin-top: 8px;
+    padding: 8px 10px;
+    background: var(--surface2);
+    border-radius: 6px;
+    border-left: 2px solid var(--accent);
+  }
+
+  /* Apply button */
+  .gene-submit-btn {
+    width: 100%;
+    margin-top: 12px;
+    padding: 10px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s, box-shadow 0.15s;
+    box-shadow: 0 2px 8px rgba(99,102,241,0.35);
+    letter-spacing: 0.2px;
+  }
+  .gene-submit-btn:hover { opacity: 0.88; box-shadow: 0 4px 14px rgba(99,102,241,0.45); }
+
+  /* Gene list */
+  .gene-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 6px;
+  }
+
+  .gene-list-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    cursor: pointer;
+    transition: border-color 0.12s, background 0.12s, opacity 0.15s;
+  }
+
+  .gene-list-item:hover:not(.disabled) { border-color: var(--accent); }
+
+  .gene-list-item.disabled {
+    opacity: 0.35;
+    pointer-events: none;
+  }
+
+  .gene-list-item.selected {
+    border-color: var(--accent);
+    background: var(--accent-light, #eef2ff);
+  }
+
+  .gene-name {
+    font-size: 0.8rem;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text);
+  }
+
+  .gene-pick-btn {
+    font-size: 0.68rem;
+    padding: 2px 8px;
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    background: var(--surface2);
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.12s;
+    white-space: nowrap;
+    pointer-events: none; /* row handles click */
+  }
+
+  .gene-list-item.selected .gene-pick-btn {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+  }
+
+  /* ── Viewer ──────────────────────────────── */
+  .viewer-main { display: flex; flex-direction: column; gap: 12px; }
+
+  .viewer-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .viewer-badge {
+    font-size: 0.78rem;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 5px 12px;
+    border-radius: 6px;
+  }
+
+  .viewer-badge-label {
+    font-size: 0.65rem;
+    color: var(--light);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-right: 4px;
+  }
+
+  .gene-badge {
+    font-size: 0.78rem;
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 5px 12px;
+    border-radius: 6px;
+  }
+
+  .viewer-zoom-btns {
+    display: flex;
+    gap: 4px;
+    margin-left: auto;
+  }
+
+  .zoom-btn {
+    width: 32px; height: 32px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface);
+    cursor: pointer;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    transition: all 0.15s;
+  }
+  .zoom-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+
+  .canvas-row {
+    display: flex;
+    gap: 12px;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .viewer-canvas {
+    background: #f7f8fa;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    flex: 1;
+    min-height: 420px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cell-types-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    min-width: 140px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .cell-types-head {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--light);
+    letter-spacing: 0.7px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  /* Empty state — light mode, WCAG AA */
+  .canvas-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    padding: 48px 32px;
+    text-align: center;
+  }
+
+  .canvas-empty-icon {
+    width: 52px; height: 52px;
+    border: 2px dashed #9ca3af;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    color: #9ca3af;
+  }
+
+  .canvas-empty-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #111827; /* contrast 18:1 on #f7f8fa */
+  }
+
+  .canvas-empty-steps {
+    font-size: 0.75rem;
+    color: #374151; /* contrast 10:1 */
+    font-family: 'JetBrains Mono', monospace;
+    line-height: 2.2;
+    text-align: left;
+  }
+
+  .canvas-empty-steps span { display: block; }
+
+  /* Loading state — light mode, WCAG AA */
+  .canvas-loading {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 48px 32px;
+    text-align: center;
+    width: 100%;
+  }
+
+  .loading-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #111827;
+  }
+
+  .progress-bar-wrap {
+    width: 100%;
+    max-width: 320px;
+    background: #e5e7eb;
+    border-radius: 99px;
+    height: 6px;
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: var(--accent, #6366f1);
+    border-radius: 99px;
+    width: 0%;
+    animation: progressAnim 30s linear forwards;
+  }
+
+  @keyframes progressAnim { to { width: 85%; } }
+
+  .loading-est {
+    font-size: 0.72rem;
+    color: #4b5563; /* contrast 6.97:1 — WCAG AA */
+    font-family: 'JetBrains Mono', monospace;
+    margin-top: -6px;
+  }
+
+  .loading-notify {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 16px 18px;
+    width: 100%;
+    max-width: 320px;
+    text-align: left;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+
+  .loading-notify-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 4px;
+  }
+
+  .loading-notify-desc {
+    font-size: 0.7rem;
+    color: #4b5563; /* contrast 7:1 */
+    margin-bottom: 10px;
+    line-height: 1.55;
+  }
+
+  .loading-notify-row { display: flex; gap: 6px; }
+
+  .loading-email-input {
+    flex: 1;
+    background: #f9fafb;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    padding: 7px 10px;
+    font-size: 0.75rem;
+    color: #111827;
+    outline: none;
+  }
+  .loading-email-input::placeholder { color: #9ca3af; }
+  .loading-email-input:focus { border-color: var(--accent, #6366f1); }
+
+  .loading-email-btn {
+    background: var(--accent, #6366f1);
+    border: none;
+    border-radius: 6px;
+    padding: 7px 13px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: white;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .loading-email-btn:hover { opacity: 0.85; }
+
+  /* Confirm re-apply overlay */
+  .confirm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .confirm-dialog {
+    background: #ffffff;
+    border-radius: 14px;
+    padding: 28px 32px;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  }
+
+  .confirm-dialog-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 10px;
+  }
+
+  .confirm-dialog-desc {
+    font-size: 0.82rem;
+    color: #4b5563;
+    line-height: 1.65;
+    margin-bottom: 22px;
+  }
+
+  .confirm-dialog-btns {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+  }
+
+  .confirm-btn-cancel {
+    padding: 8px 20px;
+    border: 1px solid #d1d5db;
+    border-radius: 7px;
+    background: #fff;
+    color: #374151;
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .confirm-btn-cancel:hover { background: #f3f4f6; }
+
+  .confirm-btn-ok {
+    padding: 8px 20px;
+    border: none;
+    border-radius: 7px;
+    background: var(--accent, #6366f1);
+    color: white;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .confirm-btn-ok:hover { opacity: 0.88; }
+
+  /* FOV dots — inset to leave room for axes */
+  .fov-dots {
+    position: absolute;
+    top: 10px;
+    left: 54px;
+    right: 10px;
+    bottom: 30px;
+    display: grid;
+    grid-template-columns: repeat(30, 1fr);
+    grid-template-rows: repeat(18, 1fr);
+    gap: 1px;
+    opacity: 0.85;
+    display: none;
+  }
+
+  .fov-dot { border-radius: 50%; opacity: 0.6; }
+
+  .viewer-crosshair {
+    position: absolute;
+    width: 20px; height: 20px;
+    border: 2px solid rgba(99,102,241,0.6);
+    border-radius: 50%;
+    top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+    pointer-events: none;
+    display: none;
+  }
+
+  /* Axes */
+  .fov-axes {
+    position: absolute;
+    inset: 0;
+    display: none;
+    pointer-events: none;
+  }
+
+  .fov-axis-y {
+    position: absolute;
+    left: 0;
+    top: 10px;
+    bottom: 30px;
+    width: 52px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding-right: 8px;
+  }
+
+  .fov-axis-x {
+    position: absolute;
+    left: 54px;
+    right: 10px;
+    bottom: 0;
+    height: 28px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .fov-axis-y span,
+  .fov-axis-x span {
+    font-size: 0.6rem;
+    font-family: 'JetBrains Mono', monospace;
+    color: #4b5563; /* 6.97:1 on #f7f8fa — WCAG AA */
+    white-space: nowrap;
+  }
+
+  /* tick marks */
+  .fov-axis-y span::after {
+    content: '';
+    display: inline-block;
+    width: 4px;
+    height: 1px;
+    background: rgba(0,0,0,0.18);
+    margin-left: 4px;
+    vertical-align: middle;
+  }
+
+  .fov-axis-x span::before {
+    content: '';
+    display: block;
+    width: 1px;
+    height: 4px;
+    background: rgba(0,0,0,0.18);
+    margin: 0 auto 2px;
+  }
+
+  @media (max-width: 900px) {
+    .viewer-layout { grid-template-columns: 1fr; padding: 24px; }
+    .left-col { position: static; border-right: none; padding-right: 0; margin-right: 0; border-bottom: 1px solid var(--border); padding-bottom: 24px; margin-bottom: 24px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <a class="logo" href="index.html">
+    <div class="logo-mark">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="9" stroke-dasharray="3 3"/></svg>
+    </div>
+    <div class="logo-label">
+      <span class="logo-title">T1D Spatial Atlas</span>
+      <span class="logo-sub">Spatial Transcriptomics · Human Pancreas</span>
+    </div>
+  </a>
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="chat.html">Chat with AI</a>
+    <a href="image.html">Image</a>
+    <a href="fov-viewer.html" class="active">FOV Viewer</a>
+    <a href="gene-expression.html">Gene Expression</a>
+    <div class="nav-divider"></div>
+    <a href="help.html">Help</a>
+    <a href="about.html" class="btn-nav">About</a>
+  </nav>
+</header>
+
+<div class="page-hero">
+  <div class="page-eyebrow"><span class="eyebrow-line"></span>Spatial Explorer</div>
+  <div class="page-h1">FOV Viewer</div>
+  <p class="page-desc">Explore Fields of View across donors. Color cells by gene expression or cell type and navigate the spatial landscape of the pancreatic tissue.</p>
+</div>
+
+<div class="viewer-layout">
+  <!-- Left column: controls -->
+  <div class="left-col">
+    <aside class="ctrl-panel">
+      <div class="ctrl-head">Controls</div>
+
+      <div class="ctrl-section">
+        <div class="ctrl-section-label">Condition</div>
+        <select class="ctrl-select" id="conditionSelect">
+          <option>Control</option>
+          <option>AB⁺LN⁻</option>
+          <option>AB⁺LN⁺</option>
+          <option>T1D</option>
+        </select>
+      </div>
+
+      <div class="ctrl-section">
+        <div class="ctrl-section-label">Donor</div>
+        <select class="ctrl-select" id="donorSelect">
+          <option>HPAP-001</option>
+          <option>HPAP-002</option>
+          <option>HPAP-003</option>
+          <option>HPAP-004</option>
+          <option>HPAP-005</option>
+          <option>HPAP-006</option>
+          <option>HPAP-007</option>
+          <option>HPAP-008</option>
+          <option>HPAP-009</option>
+          <option>HPAP-010</option>
+          <option>HPAP-011</option>
+          <option>HPAP-012</option>
+          <option>HPAP-013</option>
+          <option>HPAP-014</option>
+          <option>HPAP-015</option>
+          <option>HPAP-016</option>
+          <option>HPAP-017</option>
+          <option>HPAP-018</option>
+          <option>HPAP-019</option>
+          <option>HPAP-020</option>
+        </select>
+      </div>
+
+      <div class="ctrl-section">
+        <div class="ctrl-section-label">FOV</div>
+        <select class="ctrl-select" id="fovSelect">
+          <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option>
+          <option>6</option><option>7</option><option>8</option><option>9</option><option>10</option>
+          <option>11</option><option>12</option><option>13</option><option>14</option><option>15</option>
+          <option>16</option><option>17</option><option>18</option><option>19</option><option>20</option>
+          <option>21</option><option>22</option><option>23</option><option>24</option><option>25</option>
+        </select>
+      </div>
+
+      <div class="ctrl-section">
+        <div class="ctrl-section-label">Gene Display</div>
+        <select class="ctrl-select" id="geneSelect">
+          <option>None</option>
+          <option>Single gene</option>
+          <option>Multiple genes (maximum 3)</option>
+        </select>
+        <div class="gene-display-warn" id="geneDisplayWarn">
+          Image generation may take up to 10 minutes. Please only use when necessary.
+        </div>
+        <div id="geneNameSection" style="display:none;">
+          <div class="ctrl-section-label" id="geneSelectLabel" style="margin-top:12px;"></div>
+          <div class="gene-list" id="geneList">
+            <div class="gene-list-item" data-gene="AATK"><span class="gene-name">AATK</span><button class="gene-pick-btn" type="button">Select</button></div>
+            <div class="gene-list-item" data-gene="ABL1"><span class="gene-name">ABL1</span><button class="gene-pick-btn" type="button">Select</button></div>
+            <div class="gene-list-item" data-gene="ABL2"><span class="gene-name">ABL2</span><button class="gene-pick-btn" type="button">Select</button></div>
+            <div class="gene-list-item" data-gene="ACACB"><span class="gene-name">ACACB</span><button class="gene-pick-btn" type="button">Select</button></div>
+            <div class="gene-list-item" data-gene="ACE"><span class="gene-name">ACE</span><button class="gene-pick-btn" type="button">Select</button></div>
+          </div>
+        </div>
+        <button class="gene-submit-btn" id="applyBtn">Apply</button>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Viewer -->
+  <div class="viewer-main">
+    <div class="viewer-toolbar">
+      <span class="viewer-badge"><span class="viewer-badge-label">Condition</span><span id="badge-condition">—</span></span>
+      <span class="viewer-badge"><span class="viewer-badge-label">Donor</span><span id="badge-donor">—</span></span>
+      <span class="viewer-badge"><span class="viewer-badge-label">FOV</span><span id="badge-fov">—</span></span>
+      <div id="geneBadges" style="display:flex;gap:6px;"></div>
+    </div>
+
+    <!-- Canvas + Cell Types -->
+    <div class="canvas-row">
+      <div class="viewer-canvas">
+
+        <!-- Empty state (default) -->
+        <div class="canvas-empty" id="canvasEmpty">
+          <div class="canvas-empty-icon">⊙</div>
+          <div class="canvas-empty-title">No FOV loaded</div>
+          <div class="canvas-empty-steps">
+            <span>1 · Select Condition, Donor, and FOV</span>
+            <span>2 · Choose Gene Display mode (optional)</span>
+            <span>3 · Select gene(s) if applicable</span>
+            <span>4 · Click <strong style="color:#111827">Apply</strong> to generate</span>
+          </div>
+        </div>
+
+        <!-- Loading state -->
+        <div class="canvas-loading" id="canvasLoading">
+          <div class="loading-title">Generating FOV image…</div>
+          <div class="progress-bar-wrap">
+            <div class="progress-bar-fill" id="progressFill"></div>
+          </div>
+          <div class="loading-est">Est. less than 10 minutes</div>
+          <div class="loading-notify">
+            <div class="loading-notify-title">Get notified when ready</div>
+            <div class="loading-notify-desc">Enter your email to receive a notification once the image is ready to view.</div>
+            <div class="loading-notify-row">
+              <input class="loading-email-input" type="email" placeholder="your@email.com" id="notifyEmail">
+              <button class="loading-email-btn" id="notifySubmit">Notify me</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Actual FOV dots (shown after load) -->
+        <div class="fov-dots" id="fovDots"></div>
+
+        <!-- Axes (shown after load) -->
+        <div class="fov-axes" id="fovAxes">
+          <div class="fov-axis-y">
+            <span>36000</span>
+            <span>35000</span>
+            <span>34000</span>
+            <span>33000</span>
+            <span>32000</span>
+          </div>
+          <div class="fov-axis-x">
+            <span>19000</span>
+            <span>20000</span>
+            <span>21000</span>
+            <span>22000</span>
+            <span>23000</span>
+          </div>
+        </div>
+
+        <div class="viewer-crosshair" id="viewerCrosshair"></div>
+      </div>
+
+      <div class="cell-types-panel">
+        <div class="cell-types-head">Cell Types</div>
+        <div class="legend-row"><div class="legend-swatch" style="background:#3b82f6"></div>Beta cell</div>
+        <div class="legend-row"><div class="legend-swatch" style="background:#f59e0b"></div>Alpha cell</div>
+        <div class="legend-row"><div class="legend-swatch" style="background:#ef4444"></div>CD8⁺ T cell</div>
+        <div class="legend-row"><div class="legend-swatch" style="background:#8b5cf6"></div>CD4⁺ T cell</div>
+        <div class="legend-row"><div class="legend-swatch" style="background:#10b981"></div>Ductal cell</div>
+        <div class="legend-row"><div class="legend-swatch" style="background:#6b7280"></div>Acinar cell</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-left">
+    <span class="footer-logo">T1D Spatial Atlas</span>
+    <span class="footer-sep">·</span>
+    <span class="footer-text">Spatial Transcriptomics Platform · v1.0</span>
+  </div>
+  <div class="footer-links">
+    <a href="help.html">Documentation</a>
+    <a href="help.html#data-access">Data Access</a>
+    <a href="about.html#contact">Contact</a>
+    <a href="about.html#privacy">Privacy</a>
+  </div>
+</footer>
+
+<!-- Confirm re-apply overlay -->
+<div class="confirm-overlay" id="confirmOverlay" style="display:none;">
+  <div class="confirm-dialog">
+    <div class="confirm-dialog-title">Re-apply settings?</div>
+    <p class="confirm-dialog-desc">This will delete the current canvas and requires re-running the image generation. Are you sure you want to continue?</p>
+    <div class="confirm-dialog-btns">
+      <button class="confirm-btn-cancel" id="confirmCancel">Cancel</button>
+      <button class="confirm-btn-ok" id="confirmOk">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── Pre-render FOV dots (hidden until Apply) ──────────
+  const colors = ['#3b82f6','#f59e0b','#ef4444','#8b5cf6','#10b981','#6b7280'];
+  const fovDotsEl = document.getElementById('fovDots');
+  for (let i = 0; i < 540; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'fov-dot';
+    const size = Math.random() * 8 + 3;
+    dot.style.cssText = `width:${size}px;height:${size}px;background:${colors[Math.floor(Math.random()*colors.length)]};opacity:${(Math.random()*0.5+0.4).toFixed(2)};`;
+    fovDotsEl.appendChild(dot);
+  }
+
+  // ── DOM refs ──────────────────────────────────────────
+  const conditionSel = document.getElementById('conditionSelect');
+  const donorSel     = document.getElementById('donorSelect');
+  const fovSel       = document.getElementById('fovSelect');
+  const geneSelect   = document.getElementById('geneSelect');
+  const geneNameSection  = document.getElementById('geneNameSection');
+  const geneSelectLabel  = document.getElementById('geneSelectLabel');
+  const geneDisplayWarn  = document.getElementById('geneDisplayWarn');
+  const geneItems    = document.querySelectorAll('.gene-list-item');
+  const applyBtn     = document.getElementById('applyBtn');
+  const canvasEmpty  = document.getElementById('canvasEmpty');
+  const canvasLoading = document.getElementById('canvasLoading');
+  const geneBadges   = document.getElementById('geneBadges');
+  const viewerCrosshair = document.getElementById('viewerCrosshair');
+  const fovAxesEl       = document.getElementById('fovAxes');
+  const viewerCanvas    = document.querySelector('.viewer-canvas');
+  const confirmOverlay  = document.getElementById('confirmOverlay');
+
+  // ── Gene list helpers ─────────────────────────────────
+  function getSelected() {
+    return Array.from(geneItems).filter(el => el.classList.contains('selected'));
+  }
+
+  function resetGeneItems() {
+    geneItems.forEach(el => {
+      el.classList.remove('selected', 'disabled');
+      el.querySelector('.gene-pick-btn').textContent = 'Select';
+    });
+  }
+
+  function refreshGeneList() {
+    const mode = geneSelect.value;
+    if (mode === 'Single gene') {
+      geneItems.forEach(el => {
+        el.querySelector('.gene-pick-btn').textContent = el.classList.contains('selected') ? '✓' : 'Select';
+      });
+    } else {
+      const atMax = getSelected().length >= 3;
+      geneItems.forEach(el => {
+        const isSel = el.classList.contains('selected');
+        el.classList.toggle('disabled', atMax && !isSel);
+        el.querySelector('.gene-pick-btn').textContent = isSel ? '✓' : 'Select';
+      });
+    }
+  }
+
+  // Full-row click on gene items
+  geneItems.forEach(el => {
+    el.addEventListener('click', function() {
+      const mode = geneSelect.value;
+      const isSelected = el.classList.contains('selected');
+      if (mode === 'Single gene') {
+        resetGeneItems();
+        if (!isSelected) el.classList.add('selected');
+      } else {
+        if (!isSelected && getSelected().length >= 3) return;
+        el.classList.toggle('selected');
+      }
+      refreshGeneList();
+    });
+  });
+
+  // Gene Display select change
+  function updateGeneSection() {
+    const mode = geneSelect.value;
+    if (mode === 'None') {
+      geneNameSection.style.display = 'none';
+      geneDisplayWarn.style.display = 'none';
+    } else {
+      geneNameSection.style.display = 'block';
+      geneDisplayWarn.style.display = 'block';
+      geneSelectLabel.textContent = mode === 'Single gene' ? 'Select Gene (Select 1)' : 'Select Gene (Select up to 3)';
+      resetGeneItems();
+    }
+  }
+
+  geneSelect.addEventListener('change', updateGeneSection);
+  updateGeneSection();
+
+  // ── Apply logic ───────────────────────────────────────
+  let canvasHasContent = false;
+  let loadTimer = null;
+
+  function showCanvas() {
+    canvasLoading.style.display = 'none';
+    fovDotsEl.style.display = 'grid';
+    fovAxesEl.style.display = 'block';
+    viewerCrosshair.style.display = 'block';
+  }
+
+  function doApply() {
+    // Update toolbar badges
+    document.getElementById('badge-condition').textContent = conditionSel.value;
+    document.getElementById('badge-donor').textContent = donorSel.value;
+    document.getElementById('badge-fov').textContent = fovSel.value;
+
+    // Update gene badges
+    geneBadges.innerHTML = '';
+    getSelected().forEach(el => {
+      const b = document.createElement('span');
+      b.className = 'gene-badge';
+      b.textContent = el.dataset.gene;
+      geneBadges.appendChild(b);
+    });
+
+    // Cancel any running timer from a previous apply
+    if (loadTimer) clearTimeout(loadTimer);
+
+    // Switch to loading state
+    canvasEmpty.style.display = 'none';
+    fovDotsEl.style.display = 'none';
+    fovAxesEl.style.display = 'none';
+    viewerCrosshair.style.display = 'none';
+    canvasLoading.style.display = 'flex';
+
+    // Reset & restart progress bar animation
+    const fill = document.getElementById('progressFill');
+    fill.style.animation = 'none';
+    fill.offsetHeight;
+    fill.style.animation = '';
+
+    // Reset notify button state
+    const notifyBtn = document.getElementById('notifySubmit');
+    notifyBtn.textContent = 'Notify me';
+    notifyBtn.style.background = '';
+    notifyBtn.disabled = false;
+    document.getElementById('notifyEmail').value = '';
+
+    canvasHasContent = true;
+
+    // After 30s (prototype), reveal the canvas
+    loadTimer = setTimeout(showCanvas, 30000);
+  }
+
+  applyBtn.addEventListener('click', function() {
+    if (canvasHasContent) {
+      confirmOverlay.style.display = 'flex';
+    } else {
+      doApply();
+    }
+  });
+
+  document.getElementById('confirmOk').addEventListener('click', function() {
+    confirmOverlay.style.display = 'none';
+    doApply();
+  });
+
+  document.getElementById('confirmCancel').addEventListener('click', function() {
+    confirmOverlay.style.display = 'none';
+  });
+
+  // Notify me button (UI feedback only)
+  document.getElementById('notifySubmit').addEventListener('click', function() {
+    const email = document.getElementById('notifyEmail').value.trim();
+    if (email) {
+      this.textContent = 'Sent ✓';
+      this.style.background = '#10b981';
+      this.disabled = true;
+    }
+  });
+</script>
+
+</body>
+</html>

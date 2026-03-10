@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { keyframes } from '@emotion/react';
 import {
   Box,
   Typography,
@@ -13,6 +14,11 @@ import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
 import NavBar from './components/NavBar';
 import Footer from './components/Footer';
 import { useNavigate } from 'react-router-dom';
+
+const slideUpIn = keyframes`
+  0% { opacity: 0; transform: translateY(28px); }
+  100% { opacity: 1; transform: translateY(0); }
+`;
 
 const STATS = [
   { label: 'Total Subjects', hint: '4 disease stages · 5 each', value: '20' },
@@ -116,6 +122,9 @@ function Home() {
               textTransform: 'uppercase',
               color: 'primary.main',
               mb: 2.5,
+              opacity: 0,
+              animation: `${slideUpIn} 0.4s ease-out forwards`,
+              animationDelay: '0ms',
             }}
           >
             <Box
@@ -138,6 +147,9 @@ function Home() {
               letterSpacing: '-0.5px',
               color: 'navy.main',
               mb: 2.5,
+              opacity: 0,
+              animation: `${slideUpIn} 0.4s ease-out forwards`,
+              animationDelay: '50ms',
             }}
           >
             Explore the <Box component="em" sx={{ fontStyle: 'italic', color: 'primary.main' }}>T1D Spatial</Box>
@@ -151,6 +163,9 @@ function Home() {
               lineHeight: 1.75,
               maxWidth: 520,
               mb: 4.5,
+              opacity: 0,
+              animation: `${slideUpIn} 0.4s ease-out forwards`,
+              animationDelay: '100ms',
             }}
           >
             An AI-powered platform for analyzing CosMX (NanoString) spatial transcriptomics data from human pancreatic tissues. Single-cell spatial datasets from 20 donors representing key stages of type 1 diabetes progression.
@@ -169,6 +184,9 @@ function Home() {
                 borderRadius: 1,
                 textTransform: 'none',
                 boxShadow: 1,
+                opacity: 0,
+                animation: `${slideUpIn} 0.4s ease-out forwards`,
+                animationDelay: '170ms',
                 '&:hover': {
                   boxShadow: '0 4px 14px rgba(37,99,235,0.3)',
                   transform: 'translateY(-1px)',
@@ -190,6 +208,9 @@ function Home() {
                 borderColor: 'border.light',
                 color: 'text.primary',
                 textTransform: 'none',
+                opacity: 0,
+                animation: `${slideUpIn} 0.4s ease-out forwards`,
+                animationDelay: '240ms',
                 '&:hover': {
                   borderColor: 'accent.border',
                   color: 'primary.main',
@@ -212,6 +233,9 @@ function Home() {
             boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
             position: { md: 'sticky' },
             top: { md: 84 },
+            opacity: 0,
+            animation: `${slideUpIn} 0.4s ease-out forwards`,
+            animationDelay: '300ms',
           }}
         >
           <Box
