@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { keyframes } from '@emotion/react';
 import {
   Box,
   Typography,
@@ -15,6 +16,11 @@ import {
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import NavBar from './components/NavBar';
 import Footer from './components/Footer';
+
+const slideUpIn = keyframes`
+  0% { opacity: 0; transform: translateY(28px); }
+  100% { opacity: 1; transform: translateY(0); }
+`;
 
 const CONDITION_LABELS = {
   'Control': 'Control',
@@ -205,14 +211,51 @@ function FOV() {
       <Box sx={{ maxWidth: 1600, width: '100%', mx: 'auto', px: { xs: 2 , md: 6 } }}>
         {/* Page hero */}
         <Box sx={{ pt: 5, pb: 3 , marginX: '12%'}}>
-          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1, fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.8px', textTransform: 'uppercase', color: 'primary.main', mb: 1.5 }}>
+          <Box
+            sx={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 1,
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              letterSpacing: '0.8px',
+              textTransform: 'uppercase',
+              color: 'primary.main',
+              mb: 1.5,
+              opacity: 0,
+              animation: `${slideUpIn} 0.4s ease-out forwards`,
+              animationDelay: '0ms',
+            }}
+          >
             <Box sx={{ width: 24, height: 2, bgcolor: 'primary.main', borderRadius: '2px' }} />
             Spatial Explorer
           </Box>
-          <Typography sx={{ fontFamily: '"Source Serif 4", serif', fontSize: { xs: '1.75rem', md: '2rem' }, fontWeight: 700, color: 'navy.main', letterSpacing: '-0.5px', mb: 1 }}>
+          <Typography
+            sx={{
+              fontFamily: '"Source Serif 4", serif',
+              fontSize: { xs: '1.75rem', md: '2rem' },
+              fontWeight: 700,
+              color: 'navy.main',
+              letterSpacing: '-0.5px',
+              mb: 1,
+              opacity: 0,
+              animation: `${slideUpIn} 0.4s ease-out forwards`,
+              animationDelay: '50ms',
+            }}
+          >
             FOV Viewer
           </Typography>
-          <Typography sx={{ fontSize: '0.95rem', color: 'text.secondary', lineHeight: 1.75, maxWidth: 560 }}>
+          <Typography
+            sx={{
+              fontSize: '0.95rem',
+              color: 'text.secondary',
+              lineHeight: 1.75,
+              maxWidth: 560,
+              opacity: 0,
+              animation: `${slideUpIn} 0.4s ease-out forwards`,
+              animationDelay: '100ms',
+            }}
+          >
             Explore Fields of View across donors. Color cells by gene expression or cell type and navigate the spatial landscape of the pancreatic tissue.
           </Typography>
         </Box>

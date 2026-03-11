@@ -20,11 +20,14 @@
     "styled-components": "^6.1.19",
     "web-vitals": "^2.1.4"
   },
+  "devDependencies": {
+    "@craco/craco": "^7.1.0"
+  },
   "scripts": {
-    "start": "react-scripts start",
-    "start-watch": "WATCHPACK_POLLING=true react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
+    "start": "craco start",
+    "start-watch": "WATCHPACK_POLLING=true craco start",
+    "build": "craco build",
+    "test": "craco test",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
