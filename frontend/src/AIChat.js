@@ -1,415 +1,467 @@
-import React, { useState, useRef, useEffect } from 'react';
-import Navbar from './components/NavBar';
-import Footer from './components/Footer';
-import { Container, Box, Paper, List, ListItem, ListItemText, TextField, Button, Typography, Modal, IconButton, Grid, Card, CardActionArea, CardContent } from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
-import { useTheme } from '@mui/material/styles';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import SendIcon from '@mui/icons-material/Send';
+import {
+  Box,
+  Button,
+  IconButton,
+  InputBase,
+  Modal,
+  Stack,
+  Typography,
+} from '@mui/material';
+import ArrowOutwardOutlinedIcon from '@mui/icons-material/ArrowOutwardOutlined';
+import CloseIcon from '@mui/icons-material/Close';
+import FavoriteIcon from '@mui/icons-material/Favorite';
+import NavBar from './components/NavBar';
+import Footer from './components/Footer';
 
-// Configuration constants
+// ----------------------
+// Config (keep same wiring as existing AIChat.js)
+// ----------------------
 let BASEURL = '';
 if (process.env.NODE_ENV === 'development') {
   BASEURL = 'http://128.84.40.121';
 }
+const AI_CHAT_URL = `${BASEURL}/chat`;
 
-const AI_CHAT_URL = `${BASEURL}/chat`; // Backend endpoint for chat API
-const TEST_MODE = false; // Set to false to use real backend
+const LS_OPENAI = 'openai-history';
+const LS_DISPLAY = 'display-history';
+
+const EXAMPLE_PROMPTS = [
+  'Show me the gene expression for AATK in Beta cells.',
+  'What is the figure for FOV 1 of Donor HPAP-129?',
+  'What functions and features do you have at your disposal?',
+];
 
 function AIChat() {
-  const theme = useTheme();
-  
-  // Router location for getting initial input from navigation
   const location = useLocation();
-  const initialInput = location.state?.chatInput || '';
+  const initialInput = useMemo(() => (typeof location.state?.chatInput === 'string' ? location.state.chatInput : ''), [location.state]);
 
-  // State management
   const [messages, setMessages] = useState(() => {
-    // Initialize messages from localStorage or initial input
-    const stored = localStorage.getItem('display-history');
-    return stored ? JSON.parse(stored) : (initialInput ? [{ type: 'user', content: initialInput }] : []);
-  });
-  
-  const [input, setInput] = useState(''); // Current input field value
-  const [waiting, setWaiting] = useState(false); // Loading state during API calls
-  const [lightboxOpen, setLightboxOpen] = useState(false); // Lightbox modal visibility
-  const [lightboxImage, setLightboxImage] = useState(''); // Current image in lightbox
-  
-  // Ref for auto-scrolling chat area
-  const listRef = useRef(null);
-
-  /**
-   * Auto-scroll to bottom when new messages are added
-   */
-  useEffect(() => {
-    if (listRef.current) {
-      listRef.current.scrollTop = listRef.current.scrollHeight;
+    const stored = localStorage.getItem(LS_DISPLAY);
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch {
+        return [];
+      }
     }
+    return initialInput ? [{ type: 'user', content: initialInput }] : [];
+  });
+
+  const [input, setInput] = useState('');
+  const [waiting, setWaiting] = useState(false);
+
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxImage, setLightboxImage] = useState('');
+
+  const scrollRef = useRef(null);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
   }, [messages]);
 
-  /**
-   * Handle image click to open lightbox
-   * @param {string} imageSrc - URL of the image to display
-   */
-  const handleImageClick = (imageSrc) => {
-    setLightboxImage(imageSrc);
+  const handleImageClick = (src) => {
+    setLightboxImage(src);
     setLightboxOpen(true);
   };
 
-  /**
-   * Close the lightbox modal
-   */
   const handleCloseLightbox = () => {
     setLightboxOpen(false);
     setLightboxImage('');
   };
 
-  // Pre-made chat prompts for quick start
-  const prompts = [
-    "Show me the gene expression for AATK in Beta cells.",
-    "What is the figure for FOV 1 of Donor HPAP-129.",
-    "What functions and features do you have at your disposal."
-  ];
-
-  /**
-   * Handle prompt card click to auto-fill input
-   * @param {string} prompt - The selected prompt text
-   */
-  const handlePromptClick = (prompt) => {
-    setInput(prompt);
-    sendMessage(prompt);
-    setInput('');
-  };
-
-  /**
-   * Clear all chat history from localStorage and state
-   * Prevents clearing while waiting for API response
-   */
   const clearHistory = () => {
-    if (waiting) return; // Don't clear while waiting for response
-    localStorage.setItem('openai-history', JSON.stringify([]));
-    localStorage.setItem('display-history', JSON.stringify([]));
+    if (waiting) return;
+    localStorage.setItem(LS_OPENAI, JSON.stringify([]));
+    localStorage.setItem(LS_DISPLAY, JSON.stringify([]));
     setMessages([]);
   };
 
-  /**
-   * Simulate backend response for testing purposes
-   * Returns different responses based on input content
-   * 
-   * @param {string} content - User input message
-   * @returns {Promise<Object>} Simulated API response
-   */
-  const simulateBackendResponse = async (content) => {
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Return test responses based on input content
-    if (content.toLowerCase().includes('image') || content.toLowerCase().includes('png')) {
-      return {
-        messages: [
-          { type: 'text', content: 'Here is the image you requested:' },
-          { type: 'image', content: `${process.env.PUBLIC_URL}/imgs/example.png` }
-        ],
-        history: JSON.parse(localStorage.getItem('openai-history') || '[]')
-      };
-    } else {
-      return {
-        messages: [
-          { type: 'text', content: `This is a test response to: "${content}". The AI backend is working correctly!` }
-        ],
-        history: JSON.parse(localStorage.getItem('openai-history') || '[]')
-      };
-    }
-  };
-
-  /**
-   * Send a user message to the backend, handle and display the response
-   * Supports text and base64-encoded image responses
-   * 
-   * @param {string} content - User message to send
-   */
   const sendMessage = async (content) => {
-    if (waiting || !content.trim()) return;
+    if (waiting) return;
+    const trimmed = (content || '').trim();
+    if (!trimmed) return;
 
     setWaiting(true);
 
+    const userMsg = { type: 'user', content: trimmed };
+    const openaiHistory = [
+      ...(JSON.parse(localStorage.getItem(LS_OPENAI) || '[]')),
+      { role: 'user', content: trimmed },
+    ];
+
+    const nextDisplay = [...messages, userMsg];
+    setMessages(nextDisplay);
+    localStorage.setItem(LS_OPENAI, JSON.stringify(openaiHistory));
+    localStorage.setItem(LS_DISPLAY, JSON.stringify(nextDisplay));
+
     try {
-      // --- Update history and state with user message ---
-      const userMsg = { type: 'user', content };
-      const loadingMsg = { type: 'text', content: 'Loading ......' };
-
-      const openaiHistory = [
-        ...(JSON.parse(localStorage.getItem('openai-history') || '[]')),
-        { role: 'user', content }
-      ];
-
-      const displayHistory = [...messages, userMsg, loadingMsg];
-      setMessages(displayHistory);
-      localStorage.setItem('openai-history', JSON.stringify(openaiHistory));
-      localStorage.setItem('display-history', JSON.stringify(displayHistory));
-
-      // --- Send request ---
-      let data;
-      if (TEST_MODE) {
-        data = await simulateBackendResponse(content);
-      } else {
-        const res = await fetch(AI_CHAT_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(openaiHistory)
-        });
-        if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-        data = await res.json();
-      }
-
-      // --- Process response messages ---
-      const processedMessages = (data.messages || []).map(msg => {
-        return msg;
+      const res = await fetch(AI_CHAT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(openaiHistory),
       });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-      const finalMessages = [...messages, userMsg, ...processedMessages];
+      const data = await res.json();
+      const processed = (data.messages || []).map((m) => ({ type: m.type, content: m.content }));
+
+      const finalMessages = [...messages, userMsg, ...processed];
       setMessages(finalMessages);
-      localStorage.setItem('display-history', JSON.stringify(finalMessages));
-
-      // --- Update backend-provided history if available ---
-      if (data.history) {
-        localStorage.setItem('openai-history', JSON.stringify(data.history));
-      }
-
-    } catch (err) {
-      alert(`Error: ${err.message}`);
+      localStorage.setItem(LS_DISPLAY, JSON.stringify(finalMessages));
+      if (data.history) localStorage.setItem(LS_OPENAI, JSON.stringify(data.history));
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Unknown error';
+      const errMsg = { type: 'text', content: `Error: ${msg}` };
+      const finalMessages = [...messages, userMsg, errMsg];
+      setMessages(finalMessages);
+      localStorage.setItem(LS_DISPLAY, JSON.stringify(finalMessages));
     } finally {
       setWaiting(false);
     }
   };
 
-
-  /**
-   * Handle send button click or Enter key press
-   */
   const handleSend = () => {
-    if (input.trim()) {
-      sendMessage(input);
-      setInput('');
-    }
+    if (!input.trim()) return;
+    const current = input;
+    setInput('');
+    void sendMessage(current);
   };
 
-  /**
-   * Send initial input on component mount if provided via navigation
-   */
   useEffect(() => {
-    if (initialInput) {
-      sendMessage(initialInput);
-    }
-    // eslint-disable-next-line
+    if (!initialInput) return;
+    void sendMessage(initialInput);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  
-  return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <Navbar />
-      <Container sx={{ flex: 1, mb: 2 }}>
-        <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold', marginTop: '1rem', textAlign: 'center'}}>AI Chat</Typography>
 
-        <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end' }}>
-          <Button
-            variant="outlined"
-            color="error"
-            onClick={clearHistory}
-            disabled={waiting}
-            sx={{ borderRadius: '999px', px: 3 }}
-          >
-            Clear History
-          </Button>
-        </Box>
+  const backgroundUrl = `${process.env.PUBLIC_URL}/imgs/main_background.svg`;
 
-        <Paper elevation={3} sx={{
-          height: 580,
-          overflowY: 'auto',
-          p: 2,
-          borderRadius: 4,
-          bgcolor: '#f7f9fb',
-          border: '1px solid #dbe2ef',
-          mb: 3,
+  const renderLanding = () => (
+    <Box
+      sx={{
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        backgroundImage: `url(${backgroundUrl})`,
+        backgroundSize: '130% auto',
+        backgroundPosition: '30% 30%',
+        backgroundRepeat: 'no-repeat',
+      }}
+    >
+      <Box
+        sx={{
+          flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: 'space-between'
-        }}>
-          <Box sx={{ flexGrow: 1 }} ref={listRef}>
-            {messages.length === 0 ? (
-              <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" height="100%" gap={2}>
-                <Typography variant="h6" textAlign="center">Try one of these prompts:</Typography>
-                <Grid container spacing={2} justifyContent="center">
-                  {prompts.map((prompt, idx) => (
-                    <Grid item xs={12} sm={6} key={idx}>
-                      <Card onClick={() => handlePromptClick(prompt)} sx={{
-                        cursor: 'pointer',
-                        borderRadius: 4,
-                        p: 1,
-                        border: '2px solid transparent',
-                        transition: 'border-color 0.3s ease',
-                        '&:hover': {
-                          borderColor: '#118ab2'
-                        }
-                      }}>
-                        <CardContent>
-                          <Typography>{prompt}</Typography>
-                        </CardContent>
-                      </Card>
-                    </Grid>
-                  ))}
-                </Grid>
-              </Box>
-            ) : (
-              <List>
-                {messages.map((msg, idx) => (
-                  <ListItem key={idx} sx={{ justifyContent: msg.type === 'user' ? 'flex-end' : 'flex-start' }}>
-                    <Paper sx={{
-                      p: 1.5,
-                      bgcolor: msg.type === 'user' ? '#118ab2' : '#dbe2ef',
-                      color: msg.type === 'user' ? '#fff' : '#000',
-                      borderRadius: 3,
-                      maxWidth: '70%'
-                    }}>
-                      {msg.type === 'image' ? (
-                        <Box display="flex" flexDirection="column" alignItems="center">
-                          <img
-                            src={msg.content}
-                            alt="sent"
-                            style={{ maxWidth: 200, maxHeight: 200, margin: 8, cursor: 'pointer' }}
-                            onClick={() => handleImageClick(msg.content)}
-                          />
-                        </Box>
-                      ) : (
-                        <Typography>{msg.content}</Typography>
-                      )}
-                    </Paper>
-                  </ListItem>
-                ))}
-              </List>
-            )}
-          </Box>
+          justifyContent: 'center',
+          alignItems: 'center',
+          py: 6,
+        }}
+      >
+        <Box
+          sx={{
+            width: '42%',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+          }}
+        >
+          <Typography
+            sx={{
+              fontWeight: 600,
+              fontSize: '2.4vw',
+              mb: '40px',
+              textAlign: 'center',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <Box component="span" sx={{ color: '#000000' }}>Welcome to T1D Spatial Atlas </Box>
+            <Box component="span" sx={{ color: '#2563eb' }}>AI</Box>
+          </Typography>
 
-          <Box display="flex" alignItems="center" mt={2} px={1} sx={{
-            backgroundColor: '#fff',
-            border: '1px solid #118ab2',
-            borderRadius: '10rem',
-            width: '95%',
-            alignSelf: 'center'
-          }}>
-            <TextField
-              fullWidth
-              variant="outlined"
-              placeholder="Ask AI anything..."
+          <Box
+            sx={{
+              width: '100%',
+              height: '19vh',
+              mb: 3,
+              position: 'relative',
+              backgroundColor: '#ffffff',
+              borderRadius: '12px',
+              boxShadow: '0 2px 12px rgba(0, 0, 0, 0.1)',
+            }}
+          >
+            <InputBase
+              placeholder="Ask me anything about your data ..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-              sx={{
-                ml: 1.5,
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: '10rem',
-                  backgroundColor: '#fff',
-                  '& fieldset': {
-                    border: 'none',
-                  },
-                  '&:hover fieldset': {
-                    border: 'none',
-                  },
-                  '&.Mui-focused fieldset': {
-                    border: 'none',
-                  },
-                  '&.Mui-disabled': {
-                    backgroundColor: '#fff',
-                    '& fieldset': {
-                      border: 'none',
-                    },
-                    '&:hover fieldset': {
-                      border: 'none',
-                    },
-                  },
-                },
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend();
+                }
               }}
               disabled={waiting}
+              multiline
+              sx={{
+                width: '100%',
+                height: '100%',
+                px: 2.5,
+                py: 2,
+                fontSize: '1rem',
+                alignItems: 'flex-start',
+                '& .MuiInputBase-input': {
+                  height: '100% !important',
+                  overflow: 'auto !important',
+                },
+              }}
             />
-            <Button
-              variant="contained"
-              color="SiteSecondaryColor"
+            <IconButton
               onClick={handleSend}
               disabled={waiting}
               sx={{
-                  ml: 1.5,
-                  mr: 1.5,
-                  height: '75%',
-                  borderRadius: 28,
-                  transition: 'all 0.05s ease',
-                  boxShadow: '0 1px 6px rgba(0, 0, 0, 0.08)',
+                position: 'absolute',
+                bottom: 12,
+                right: 12,
+                backgroundColor: '#2563eb',
+                width: 36,
+                height: 36,
+                '&:hover': { backgroundColor: '#1d4fd8' },
+                '&:disabled': { backgroundColor: '#cbd5e1' },
+              }}
+            >
+              <ArrowOutwardOutlinedIcon sx={{ color: '#ffffff', fontSize: 20 }} />
+            </IconButton>
+          </Box>
+        </Box>
+
+        <Box sx={{ width: '59%' }}>
+          <Typography sx={{ color: '#000000', fontWeight: 600, fontSize: '0.9rem', mb: 0.8 }}>
+            Examples:
+          </Typography>
+          <Stack direction="row" spacing={1.5}>
+            {EXAMPLE_PROMPTS.map((prompt) => (
+              <Box
+                key={prompt}
+                onClick={() => void sendMessage(prompt)}
+                sx={{
+                  flex: 1,
+                  height: '14.3vh',
+                  backgroundColor: '#ffffff',
+                  borderRadius: '8px',
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+                  p: 1.5,
+                  position: 'relative',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
                   '&:hover': {
-                    backgroundColor: theme.palette.SiteSecondaryColor.hover,
-                    boxShadow: '0 3px 10px rgba(0, 0, 0, 0.1)',
-                    transform: 'scale(1.02)',
-                  },
-                  '&:active': {
-                    transform: 'scale(0.99)',
+                    backgroundColor: '#fafafa',
+                    boxShadow: '0 3px 12px rgba(0, 0, 0, 0.12)',
                   },
                 }}
+              >
+                <Typography sx={{ color: '#2C2C2B', fontSize: '0.85rem', fontWeight: 400, lineHeight: 1.4, pr: 3 }}>
+                  {prompt}
+                </Typography>
+                <ArrowOutwardOutlinedIcon
+                  sx={{
+                    position: 'absolute',
+                    bottom: 10,
+                    right: 10,
+                    color: '#2563eb',
+                    fontSize: 18,
+                  }}
+                />
+              </Box>
+            ))}
+          </Stack>
+        </Box>
+      </Box>
+    </Box>
+  );
+
+  const renderConversation = () => (
+    <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', bgcolor: '#ffffff' }}>
+      <Box
+        ref={scrollRef}
+        sx={{
+          flex: 1,
+          overflowY: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          pt: 2,
+          pb: 2,
+        }}
+      >
+        <Box sx={{ width: '42.75%', display: 'flex', flexDirection: 'column', gap: 3, pb: 3 }}>
+          {messages.map((msg, idx) => {
+            const isUser = msg.type === 'user';
+            const isImage = msg.type === 'image';
+
+            if (isUser) {
+              return (
+                <Box key={idx} sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <Box
+                    sx={{
+                      maxWidth: '70%',
+                      px: 1.5,
+                      py: 1,
+                      borderRadius: '12px',
+                      backgroundColor: '#eff4ff',
+                      color: '#000000',
+                    }}
+                  >
+                    <Typography sx={{ fontSize: '0.85rem', lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                      {msg.content}
+                    </Typography>
+                  </Box>
+                </Box>
+              );
+            }
+
+            return (
+              <Box key={idx} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                <FavoriteIcon sx={{ color: '#2563eb', fontSize: 22, mb: 1 }} />
+                <Box sx={{ maxWidth: '85%' }}>
+                  {isImage ? (
+                    <Box sx={{ width: '100%', maxWidth: '100%' }}>
+                      <img
+                        src={msg.content}
+                        alt="response"
+                        style={{ maxWidth: '100%', maxHeight: 420, cursor: 'pointer', display: 'block', borderRadius: '8px' }}
+                        onClick={() => handleImageClick(msg.content)}
+                      />
+                    </Box>
+                  ) : (
+                    <Typography sx={{ fontSize: '0.85rem', lineHeight: 1.6, color: '#000000', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                      {msg.content}
+                    </Typography>
+                  )}
+                </Box>
+              </Box>
+            );
+          })}
+
+          {waiting && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1 }}>
+              <FavoriteIcon sx={{ color: '#2563eb', fontSize: 22, mb: 0.5 }} />
+              <Typography sx={{ fontSize: '0.9rem', color: '#9aa5b1' }}>Thinking...</Typography>
+            </Box>
+          )}
+        </Box>
+      </Box>
+
+      <Box sx={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', pt: 2, pb: 0, backgroundColor: 'transparent' }}>
+        {messages.length > 0 && (
+          <Box sx={{ width: '42.75%', display: 'flex', justifyContent: 'flex-start', mb: 1, pl: 1 }}>
+            <Button
+              variant="outlined"
+              onClick={clearHistory}
+              disabled={waiting}
+              sx={{
+                color: 'primary.main',
+                borderColor: 'primary.main',
+                backgroundColor: '#ffffff',
+                borderRadius: '50px',
+                textTransform: 'none',
+                fontWeight: 500,
+                px: 2,
+                py: 0.5,
+                fontSize: '0.85rem',
+                '&:hover': { borderColor: 'primary.main', backgroundColor: 'primary.light' },
+              }}
             >
-              <SendIcon />
+              Clear History
             </Button>
           </Box>
-        </Paper>
-      </Container>
+        )}
 
-      {/* Lightbox Modal for full-size image viewing */}
-        <Modal
-          open={lightboxOpen}
-          onClose={handleCloseLightbox}
+        <Box
           sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            p: 2
+            width: '42.75%',
+            height: '16.8vh',
+            position: 'relative',
+            backgroundColor: '#ffffff',
+            borderRadius: '12px',
+            boxShadow: '0 2px 12px rgba(0, 0, 0, 0.1)',
+            marginBottom: '2%',
           }}
         >
-          <Box
+          <InputBase
+            placeholder="Ask me anything about your data ..."
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+              }
+            }}
+            disabled={waiting}
+            multiline
             sx={{
-              position: 'relative',
-              maxWidth: '90vw',
-              maxHeight: '90vh',
-              bgcolor: 'background.paper',
-              boxShadow: 24,
-              p: 1
+              width: '100%',
+              height: '100%',
+              px: 2.5,
+              py: 2,
+              fontSize: '1rem',
+              alignItems: 'flex-start',
+              '& .MuiInputBase-input': { height: '100% !important', overflow: 'auto !important' },
+            }}
+          />
+          <IconButton
+            onClick={handleSend}
+            disabled={waiting}
+            sx={{
+              position: 'absolute',
+              bottom: 12,
+              right: 12,
+              backgroundColor: '#2563eb',
+              width: 36,
+              height: 36,
+              '&:hover': { backgroundColor: '#1d4fd8' },
+              '&:disabled': { backgroundColor: '#cbd5e1' },
             }}
           >
-            {/* Close button */}
-            <IconButton
-              onClick={handleCloseLightbox}
-              sx={{
-                position: 'absolute',
-                right: 8,
-                top: 8,
-                bgcolor: 'rgba(0,0,0,0.5)',
-                color: 'white',
-                '&:hover': {
-                  bgcolor: 'rgba(0,0,0,0.7)'
-                }
-              }}
-            >
-              <CloseIcon />
-            </IconButton>
-            
-            {/* Full-size image */}
-            <img
-              src={lightboxImage}
-              alt="Full size"
-              style={{
-                maxWidth: '100%',
-                maxHeight: '100%',
-                display: 'block',
-              }}
-            />
-          </Box>
-        </Modal>
+            <ArrowOutwardOutlinedIcon sx={{ color: '#ffffff', fontSize: 20 }} />
+          </IconButton>
+        </Box>
+      </Box>
+    </Box>
+  );
+
+  return (
+    <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: 'background.default' }}>
+      <NavBar />
+      {messages.length === 0 ? renderLanding() : renderConversation()}
       <Footer />
-    </div>
+
+      <Modal
+        open={lightboxOpen}
+        onClose={handleCloseLightbox}
+        sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', p: 2 }}
+      >
+        <Box sx={{ position: 'relative', maxWidth: '92vw', maxHeight: '92vh', bgcolor: 'background.paper', borderRadius: '8px', p: 1 }}>
+          <IconButton
+            onClick={handleCloseLightbox}
+            sx={{
+              position: 'absolute',
+              right: 8,
+              top: 8,
+              bgcolor: 'rgba(0,0,0,0.55)',
+              color: 'white',
+              '&:hover': { bgcolor: 'rgba(0,0,0,0.75)' },
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+          <img src={lightboxImage} alt="Full size" style={{ maxWidth: '90vw', maxHeight: '90vh', display: 'block' }} />
+        </Box>
+      </Modal>
+    </Box>
   );
 }
 
