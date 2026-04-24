@@ -49,6 +49,9 @@ function AIChat() {
     return initialInput ? [{ type: 'user', content: initialInput }] : [];
   });
 
+  // If user clicks "Go" without input, we still want to show chat UI, but not send anything.
+  const [showConversation, setShowConversation] = useState(() => !!initialInput);
+
   const [input, setInput] = useState('');
   const [waiting, setWaiting] = useState(false);
 
@@ -78,6 +81,7 @@ function AIChat() {
     localStorage.setItem(LS_OPENAI, JSON.stringify([]));
     localStorage.setItem(LS_DISPLAY, JSON.stringify([]));
     setMessages([]);
+    setShowConversation(false);
   };
 
   const sendMessage = async (content) => {
@@ -85,6 +89,7 @@ function AIChat() {
     const trimmed = (content || '').trim();
     if (!trimmed) return;
 
+    setShowConversation(true);
     setWaiting(true);
 
     const userMsg = { type: 'user', content: trimmed };
@@ -125,9 +130,15 @@ function AIChat() {
   };
 
   const handleSend = () => {
-    if (!input.trim()) return;
+    const trimmed = input.trim();
+    if (!trimmed) {
+      // "Go" with no input: show the chat page UI but don't send a message.
+      setShowConversation(true);
+      return;
+    }
     const current = input;
     setInput('');
+    setShowConversation(true);
     void sendMessage(current);
   };
 
@@ -436,7 +447,7 @@ function AIChat() {
   return (
     <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: 'background.default' }}>
       <NavBar />
-      {messages.length === 0 ? renderLanding() : renderConversation()}
+      {(showConversation || messages.length > 0) ? renderConversation() : renderLanding()}
       <Footer />
 
       <Modal
