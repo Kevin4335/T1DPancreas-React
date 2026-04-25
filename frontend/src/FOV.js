@@ -6,12 +6,12 @@ import {
   Button,
   Card,
   FormControl,
-  InputLabel,
   Select,
   MenuItem,
   TextField,
   Alert,
   Modal,
+  LinearProgress,
 } from '@mui/material';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import NavBar from './components/NavBar';
@@ -53,6 +53,7 @@ function FOV() {
   const [imageUrl, setImageUrl] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [singleGeneOptions, setSingleGeneOptions] = useState([]);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [canvasHasContent, setCanvasHasContent] = useState(false);
@@ -93,11 +94,23 @@ function FOV() {
   ];
 
   useEffect(() => {
-    fetch('/genes')
+    fetch('http://128.84.40.121:5000/genes')
       .then((res) => res.json())
       .then((data) => setSingleGeneOptions(Array.isArray(data) ? data : []))
       .catch(() => setSingleGeneOptions([]));
   }, []);
+
+  const simulateProgress = () => {
+    let progressValue = 0;
+    const increment = () => {
+      if (progressValue < 80) {
+        progressValue += 0.2;
+        setProgress(progressValue);
+        setTimeout(increment, 50);
+      }
+    };
+    increment();
+  };
 
   const isSubmitActive = () => {
     if (!condition || !donor || !fov) return false;
@@ -112,7 +125,9 @@ function FOV() {
     if (!condition || !donor || !fov) return;
 
     setIsLoading(true);
+    setProgress(0);
     setErrorMessage('');
+    simulateProgress();
 
     let errMsg = '';
     if (geneDisplay.startsWith('Single') && !singleGene) errMsg += 'Please select a gene. ';
@@ -144,6 +159,7 @@ function FOV() {
       const link = `/spatial_plots/all_cells/${donor}/${donor}_${fov}_Image.png`;
       setImageUrl(link);
       setCanvasHasContent(true);
+      setProgress(100);
       setIsLoading(false);
       return;
     }
@@ -156,6 +172,7 @@ function FOV() {
       const link = `/spatial_plots/single_gene/${folderMap[condition]}/${donor}/${filenameMap[condition]}_${donor}_${fov}_${gene}.png`;
       setImageUrl(link);
       setCanvasHasContent(true);
+      setProgress(100);
       setIsLoading(false);
       return;
     }
@@ -164,17 +181,23 @@ function FOV() {
       try {
         const validGenes = multiGeneInput.split(',').map((g) => g.trim()).filter(Boolean);
         const filenameMap = { 'Control': 'Control', 'AB+LN-': 'AB_plus_LN_minus', 'AB+LN+': 'AB_plus_LN_plus', 'T1D': 'T1D' };
-        const requestData = { f: 1, p1: filenameMap[condition], p2: donor, p3: parseInt(fov, 10), p4: validGenes.join(',') };
-        const hexData = stringToHex(JSON.stringify(requestData));
-        const fovApiBase = process.env.REACT_APP_FOV_API_URL || window.location.origin;
-        const response = await fetch(`${fovApiBase}/fov/${hexData}`);
+        const requestData = { f: 1, p1: filenameMap[condition], p2: donor, p3: fov, p4: validGenes.join(',') };
+        const jsonData = JSON.stringify(requestData);
+        const hexData = stringToHex(jsonData);
+        const url = `http://128.84.40.121:5000/fov/${hexData}`;
+        console.log('JSON Data:', jsonData);
+        console.log('Hex Data:', hexData);
+        console.log('Submitting fov request:', requestData);
+        console.log('Request URL:', url);
+        const response = await fetch(url, { method: 'GET' });
         if (response.ok) {
           const data = await response.json();
           if (data.img) {
             const imgDataUrl = `data:image/png;base64,${data.img}`;
             setImageUrl(imgDataUrl);
             setCanvasHasContent(true);
-            await fetch(`${window.location.origin}/api/email_simple`, {
+            setProgress(100);
+            await fetch('http://128.84.40.121/api/email_simple', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ email, image_data: imgDataUrl, donor, condition }),
@@ -188,6 +211,7 @@ function FOV() {
         setErrorMessage(err?.message || 'Network error');
       } finally {
         setIsLoading(false);
+        setTimeout(() => setProgress(0), 250);
       }
     }
   };
@@ -385,14 +409,22 @@ function FOV() {
                       </Box>
                     )}
                     {geneDisplay === 'Single Gene' && (
-                      <FormControl fullWidth size="small" sx={{ mt: 2 }}>
-                        <InputLabel>Gene</InputLabel>
-                        <Select value={singleGene} label="Gene" onChange={(e) => setSingleGene(e.target.value)}>
-                          {singleGeneOptions.map((g) => (
-                            <MenuItem key={g} value={g}>{g}</MenuItem>
+                      <Box sx={{ mt: 2 }}>
+                        <TextField
+                          fullWidth
+                          size="small"
+                          placeholder="Type a gene symbol (e.g. INS)"
+                          value={singleGene}
+                          onChange={(e) => setSingleGene(e.target.value)}
+                          inputProps={{ list: 'single-gene-options' }}
+                          sx={{ '& .MuiInputBase-input': { fontSize: '0.82rem' } }}
+                        />
+                        <datalist id="single-gene-options">
+                          {singleGeneOptions.slice(0, 500).map((g) => (
+                            <option key={g} value={g} />
                           ))}
-                        </Select>
-                      </FormControl>
+                        </datalist>
+                      </Box>
                     )}
                     {geneDisplay === 'Multi Gene (Max 3)' && (
                       <Box sx={{ mt: 2 }}>
@@ -481,8 +513,11 @@ function FOV() {
                 {isLoading && (
                   <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, p: 4, width: '100%', maxWidth: 320 }}>
                     <Typography sx={{ fontSize: '0.9rem', fontWeight: 700, color: 'text.primary' }}>Generating FOV image…</Typography>
-                    <Box sx={{ width: '100%', height: 6, bgcolor: 'action.selected', borderRadius: 99, overflow: 'hidden' }}>
-                      <Box sx={{ height: '100%', width: '85%', bgcolor: 'primary.main', borderRadius: 99 }} />
+                    <Box sx={{ width: '100%' }}>
+                      <LinearProgress variant="determinate" value={progress} sx={{ height: 8, borderRadius: 1 }} />
+                      <Typography sx={{ mt: 0.5, fontSize: '0.72rem', color: 'text.secondary', fontFamily: 'JetBrains Mono, monospace' }}>
+                        {Math.round(progress)}% complete
+                      </Typography>
                     </Box>
                     <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', fontFamily: 'JetBrains Mono, monospace' }}>Est. less than 10 minutes</Typography>
                     <Box sx={{ width: '100%', p: 2, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider', borderRadius: 1.25, textAlign: 'left' }}>
