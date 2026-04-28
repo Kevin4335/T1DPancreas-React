@@ -35,6 +35,26 @@ labels <- c(
   "NK cells", "Pre-B cells", "T cells",  "Unknown"
 )
 
+make_celltype_palette <- function(celltypes) {
+  celltypes <- unique(as.character(celltypes))
+  base_map <- stats::setNames(col, labels)
+  missing_types <- setdiff(celltypes, names(base_map))
+  if (length(missing_types) > 0) {
+    extra_cols <- grDevices::hcl.colors(length(missing_types), palette = "Dynamic")
+    names(extra_cols) <- missing_types
+    base_map <- c(base_map, extra_cols)
+  }
+  base_map[celltypes]
+}
+
+pick_reduction <- function(object, candidates = c("umap", "umap_harmony", "umap_pca", "harmony", "pca")) {
+  available <- names(object@reductions)
+  hit <- candidates[candidates %in% available]
+  if (length(hit) > 0) return(hit[[1]])
+  if (length(available) > 0) return(available[[1]])
+  stop("No dimensional reduction found in Seurat object.")
+}
+
 pick_meta_col <- function(md, candidates, required = TRUE) {
   cols <- colnames(md)
   hit <- candidates[candidates %in% cols]
@@ -62,6 +82,8 @@ exp_func <- function(Igene, IcellType) {
   }
 
   valid_celltypes <- unique(md[[cell_col]])
+  palette_map <- make_celltype_palette(valid_celltypes)
+  reduction_name <- pick_reduction(obj)
   if (!all(celltype_list %in% valid_celltypes)) {
     cat("Invalid cell types:", celltype_list[!celltype_list %in% valid_celltypes], "\n")
     stop("One or more cell types not found.")
@@ -86,10 +108,20 @@ exp_func <- function(Igene, IcellType) {
   gene_list <- strsplit(Igene, split = ',')[[1]]
   celltype_list <- strsplit(IcellType, split = ',')[[1]]
 
-  p0 <- DimPlot(obj, reduction = "umap", label = FALSE, label.size = 6, cols = col, 
-                label.color = "black", pt.size = 1, alpha = 0.8, group.by = cell_col) +
+  # Downsample UMAP overview to prevent OOM kills on large objects.
+  all_cells <- Cells(obj)
+  max_umap_cells <- 5000
+  if (length(all_cells) > max_umap_cells) {
+    set.seed(1)
+    umap_cells <- sample(all_cells, max_umap_cells)
+  } else {
+    umap_cells <- all_cells
+  }
+  obj_umap <- subset(obj, cells = umap_cells)
+
+  p0 <- DimPlot(obj_umap, reduction = reduction_name, label = FALSE, label.size = 6, cols = palette_map,
+                label.color = "black", pt.size = 0.7, alpha = 0.8, group.by = cell_col, raster = TRUE) +
     guides(color = guide_legend(override.aes = list(size = 8), ncol = 1)) +
-    scale_color_manual(values = col, labels = labels) +
     theme(plot.title = element_blank(),
           legend.position = "right",
           legend.text = element_text(face = "bold", color = "Black", size = 18, family = "serif"))
@@ -268,6 +300,7 @@ image_FOV_cellType <- function(Islide, Ipatient, Ifov, Igene) {
   fov_col <- pick_meta_col(md, c("fov", "FOV", "fov_id", "FOV_ID"))
   condition_col <- pick_meta_col(md, c("condition", "Condition", "disease", "group"), required = FALSE)
   cell_col <- pick_meta_col(md, c("all_celltypes", "All_Cell_Type", "all_cell_types", "cell_type"))
+  palette_map <- make_celltype_palette(unique(as.character(md[[cell_col]])))
 
   # Allow Islide to be either the actual slide label or a condition label (e.g. T1D/CTRL).
   slide_hit <- md[[slide_col]] == Islide
@@ -297,7 +330,23 @@ image_FOV_cellType <- function(Islide, Ipatient, Ifov, Igene) {
   seg.xmax <- max(IF.sub.test$CenterX_global_px)
   seg.ymin <- min(IF.sub.test$CenterY_global_px)
   seg.ymax <- max(IF.sub.test$CenterY_global_px)
-  cropped.coords <- Crop(IF.sub.test[[unique(IF.sub.test[[slide_col]])]], x = c(seg.xmin, seg.xmax), y = c(seg.ymin, seg.ymax), coords = "tissue")
+  fov_images <- Images(IF.sub.test)
+  slide_values <- unique(as.character(IF.sub.test@meta.data[[slide_col]]))
+  slide_name <- slide_values[[1]]
+  if (length(slide_values) > 1) {
+    slide_name <- slide_values[slide_values %in% fov_images][[1]]
+  }
+  if (is.null(slide_name) || is.na(slide_name) || !(slide_name %in% fov_images)) {
+    stop(
+      sprintf(
+        "Cannot resolve FOV image from metadata column '%s'. Candidate values: %s. Available images: %s",
+        slide_col,
+        paste(head(slide_values, 10), collapse = ", "),
+        paste(fov_images, collapse = ", ")
+      )
+    )
+  }
+  cropped.coords <- Crop(IF.sub.test[[slide_name]], x = c(seg.xmin, seg.xmax), y = c(seg.ymin, seg.ymax), coords = "tissue")
   IF.sub.test[["zoom1"]] <- cropped.coords
   DefaultBoundary(IF.sub.test[["zoom1"]]) <- "segmentation"
 
@@ -308,29 +357,29 @@ image_FOV_cellType <- function(Islide, Ipatient, Ifov, Igene) {
   }, add = TRUE)
 
   if (is.null(gene_list)) {
-    g <- ImageDimPlot(IF.sub.test, fov = "zoom1", cols = col, alpha = 0.6, crop = TRUE, axes = TRUE, dark.background = FALSE,
+    g <- ImageDimPlot(IF.sub.test, fov = "zoom1", cols = palette_map, alpha = 0.6, crop = TRUE, axes = TRUE, dark.background = FALSE,
                       mols.size = 1.5, nmols = 20000, border.color = NA, coord.fixed = TRUE, size = 1, mols.alpha = 1) +
       theme_bw() +
       theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank()) +
-      scale_fill_manual(breaks = labels, values = col)
+      scale_fill_manual(values = palette_map)
     print(g)
 
   } else if (length(gene_list) == 1) {
-    g <- ImageDimPlot(IF.sub.test, fov = "zoom1", cols = col, alpha = 0.3, molecules = gene_list, crop = TRUE, axes = TRUE, dark.background = FALSE,
+    g <- ImageDimPlot(IF.sub.test, fov = "zoom1", cols = palette_map, alpha = 0.3, molecules = gene_list, crop = TRUE, axes = TRUE, dark.background = FALSE,
                       mols.cols = "red", mols.size = 1, nmols = 20000, border.color = NA, coord.fixed = TRUE, size = 1, mols.alpha = 1) +
       theme_bw() +
       theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank()) +
       guides(fill = guide_legend(override.aes = list(alpha = 0.3))) +
-      scale_fill_manual(breaks = labels, values = col)
+      scale_fill_manual(values = palette_map)
     print(g)
 
   } else if (length(gene_list) <= 3) {
-    g <- ImageDimPlot(IF.sub.test, fov = "zoom1", cols = col, alpha = 0.3, molecules = gene_list, crop = TRUE, axes = TRUE, dark.background = FALSE,
+    g <- ImageDimPlot(IF.sub.test, fov = "zoom1", cols = palette_map, alpha = 0.3, molecules = gene_list, crop = TRUE, axes = TRUE, dark.background = FALSE,
                       mols.cols = "red", mols.size = 1, nmols = 20000, border.color = NA, coord.fixed = TRUE, size = 1, mols.alpha = 1) +
       theme_bw() +
       theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank()) +
       guides(fill = guide_legend(override.aes = list(alpha = 0.3))) +
-      scale_fill_manual(breaks = labels, values = col) +
+      scale_fill_manual(values = palette_map) +
       scale_color_manual(values = c("red", "purple", "orange"))
     print(g)
 

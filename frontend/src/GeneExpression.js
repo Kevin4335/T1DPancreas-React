@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { keyframes } from '@emotion/react';
 import {
   Box,
@@ -14,6 +14,7 @@ import {
   LinearProgress,
 } from '@mui/material';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
+import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import NavBar from './components/NavBar';
 import Footer from './components/Footer';
 
@@ -22,7 +23,6 @@ const slideUpIn = keyframes`
   100% { opacity: 1; transform: translateY(0); }
 `;
 
-const GENE_LIST = ['BAX', 'CD8A', 'CDKN1A', 'FOXP3', 'GCG', 'HLA-A', 'INS', 'IRF1', 'PPY', 'PTPRC', 'SST', 'STAT1'];
 const CELL_TYPES = [
   'Acinar', 'Alpha', 'Beta', 'Delta', 'Ductal', 'Endothelial', 'Mesenchymal',
   'B cells', 'Dendritic cells', 'Macrophages', 'Monocytes', 'Granulocytes',
@@ -32,6 +32,7 @@ const CELL_TYPES = [
 function GeneExpression() {
   const [geneInput, setGeneInput] = useState('INS');
   const [validGenes, setValidGenes] = useState(['INS']);
+  const [geneOptions, setGeneOptions] = useState([]);
   const [suggestions, setSuggestions] = useState([]);
   const [showSugg, setShowSugg] = useState(false);
 
@@ -72,6 +73,13 @@ function GeneExpression() {
     [selectedCellTypes]
   );
 
+  useEffect(() => {
+    fetch(`${GLB_API_SERVER_URL}/genes`)
+      .then((res) => res.json())
+      .then((data) => setGeneOptions(Array.isArray(data) ? data : []))
+      .catch(() => setGeneOptions([]));
+  }, []);
+
   const simulateProgress = () => {
     let progressValue = 0;
     const increment = () => {
@@ -92,8 +100,18 @@ function GeneExpression() {
     setValidGenes(parsed);
 
     if (input.trim()) {
-      const q = input.toUpperCase().trim();
-      const filtered = GENE_LIST.filter((g) => g.includes(q)).slice(0, 20);
+      const normalized = input.toUpperCase();
+      const parts = normalized.split(/[,\n]/);
+      const activeToken = (parts[parts.length - 1] || '').trim();
+      const picked = new Set(parts.map((p) => p.trim()).filter(Boolean));
+      const filtered = activeToken
+        ? geneOptions
+          .filter((g) => {
+            const upper = (g || '').toUpperCase();
+            return upper.startsWith(activeToken) && !picked.has(upper);
+          })
+          .slice(0, 20)
+        : [];
       setSuggestions(filtered);
       setShowSugg(filtered.length > 0);
     } else {
@@ -303,8 +321,11 @@ function GeneExpression() {
                     component="button"
                     type="button"
                     onMouseDown={() => {
-                      setGeneInput(g);
-                      setValidGenes([g]);
+                      const parts = geneInput.split(/[,\n]/);
+                      parts[parts.length - 1] = g;
+                      const next = `${parts.map((p) => p.trim()).filter(Boolean).join(', ')}, `;
+                      setGeneInput(next);
+                      setValidGenes(parseGenes(next));
                       setShowSugg(false);
                       setSuggestions([]);
                     }}
@@ -405,19 +426,34 @@ function GeneExpression() {
                 }}
               >
                 {imageData ? (
-                  <Box
-                    component="img"
-                    src={imageData}
-                    alt="Gene expression result"
-                    sx={{
-                      width: '100%',
-                      height: 'auto',
-                      maxHeight: '72vh',
-                      objectFit: 'contain',
-                      display: 'block',
-                      borderRadius: 1,
-                    }}
-                  />
+                  <Box sx={{ width: '100%', height: '100%', minHeight: 460 }}>
+                    <TransformWrapper
+                      initialScale={1}
+                      minScale={0.5}
+                      maxScale={8}
+                      centerOnInit
+                      limitToBounds={false}
+                      style={{ width: '100%', height: '100%' }}
+                    >
+                      <TransformComponent
+                        wrapperStyle={{ width: '100%', height: '100%' }}
+                        contentStyle={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      >
+                        <Box
+                          component="img"
+                          src={imageData}
+                          alt="Gene expression result"
+                          sx={{
+                            maxWidth: '100%',
+                            maxHeight: '72vh',
+                            objectFit: 'contain',
+                            display: 'block',
+                            borderRadius: 1,
+                          }}
+                        />
+                      </TransformComponent>
+                    </TransformWrapper>
+                  </Box>
                 ) : (
                   <Typography sx={{ fontSize: '0.85rem', color: 'text.secondary', textAlign: 'center', maxWidth: 540 }}>
                     Select genes and cell types, then click Search to generate the expression plot.

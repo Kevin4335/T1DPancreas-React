@@ -112,6 +112,14 @@ function FOV() {
     setMultiGeneSuggestions(suggestions);
   };
 
+  const getSingleGeneSuggestions = () => {
+    const q = singleGene.trim().toUpperCase();
+    if (!q) return [];
+    return singleGeneOptions
+      .filter((g) => g && g.toUpperCase().startsWith(q))
+      .slice(0, 100);
+  };
+
   const applyMultiGeneSuggestion = (gene) => {
     const parts = multiGeneInput.split(',');
     parts[parts.length - 1] = ` ${gene}`;
@@ -471,7 +479,7 @@ function FOV() {
                           sx={{ '& .MuiInputBase-input': { fontSize: '0.82rem' } }}
                         />
                         <datalist id="single-gene-options">
-                          {singleGeneOptions.slice(0, 500).map((g) => (
+                          {getSingleGeneSuggestions().map((g) => (
                             <option key={g} value={g} />
                           ))}
                         </datalist>
@@ -620,13 +628,29 @@ function FOV() {
                         </Typography>
                         <a href={pdfLeftUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.7rem' }}>Open</a>
                       </Box>
-                      <Box
-                        component="img"
-                        src={pdfLeftUrl}
-                        alt="FOV tissue overview"
-                        sx={{ width: '100%', height: '100%', minHeight: { xs: 320, md: 400 }, objectFit: 'contain', display: 'block', bgcolor: '#fff' }}
-                        onError={() => setErrorMessage('Failed to load precomputed image.')}
-                      />
+                      <Box sx={{ flex: 1, minHeight: { xs: 320, md: 400 }, position: 'relative', bgcolor: '#fff' }}>
+                        <TransformWrapper
+                          initialScale={1}
+                          minScale={0.5}
+                          maxScale={8}
+                          centerOnInit
+                          limitToBounds={false}
+                          style={{ width: '100%', height: '100%' }}
+                        >
+                          <TransformComponent
+                            wrapperStyle={{ width: '100%', height: '100%' }}
+                            contentStyle={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                          >
+                            <Box
+                              component="img"
+                              src={pdfLeftUrl}
+                              alt="FOV tissue overview"
+                              sx={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', display: 'block', bgcolor: '#fff' }}
+                              onError={() => setErrorMessage('Failed to load precomputed image.')}
+                            />
+                          </TransformComponent>
+                        </TransformWrapper>
+                      </Box>
                       <Box sx={{ px: 1, py: 0.5, borderTop: '1px solid', borderColor: 'divider', fontSize: '0.72rem' }}>
                         <a href={pdfLeftUrl.replace(/\.png$/i, '.pdf')} target="_blank" rel="noopener noreferrer">Open PDF</a>
                       </Box>
@@ -638,13 +662,29 @@ function FOV() {
                         </Typography>
                         <a href={pdfRightUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.7rem' }}>Open</a>
                       </Box>
-                      <Box
-                        component="img"
-                        src={pdfRightUrl}
-                        alt="FOV islet-focused"
-                        sx={{ width: '100%', height: '100%', minHeight: { xs: 320, md: 400 }, objectFit: 'contain', display: 'block', bgcolor: '#fff' }}
-                        onError={() => setErrorMessage('Failed to load precomputed image.')}
-                      />
+                      <Box sx={{ flex: 1, minHeight: { xs: 320, md: 400 }, position: 'relative', bgcolor: '#fff' }}>
+                        <TransformWrapper
+                          initialScale={1}
+                          minScale={0.5}
+                          maxScale={8}
+                          centerOnInit
+                          limitToBounds={false}
+                          style={{ width: '100%', height: '100%' }}
+                        >
+                          <TransformComponent
+                            wrapperStyle={{ width: '100%', height: '100%' }}
+                            contentStyle={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                          >
+                            <Box
+                              component="img"
+                              src={pdfRightUrl}
+                              alt="FOV islet-focused"
+                              sx={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', display: 'block', bgcolor: '#fff' }}
+                              onError={() => setErrorMessage('Failed to load precomputed image.')}
+                            />
+                          </TransformComponent>
+                        </TransformWrapper>
+                      </Box>
                       <Box sx={{ px: 1, py: 0.5, borderTop: '1px solid', borderColor: 'divider', fontSize: '0.72rem' }}>
                         <a href={pdfRightUrl.replace(/\.png$/i, '.pdf')} target="_blank" rel="noopener noreferrer">Open PDF</a>
                       </Box>
