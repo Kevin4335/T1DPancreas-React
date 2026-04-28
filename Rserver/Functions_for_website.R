@@ -8,7 +8,7 @@ library(patchwork)
 
 library(httpuv) # jtc
 library(jsonlite) # jtc
-obj <- readRDS("/mnt/mountpoint/T1D_Cosmx/RDS_files/cosmx_SL-15dims.rds")
+obj <- readRDS("/mnt/mountpoint/T1D_Cosmx_new/rds/ECSL7731_annotated.rds")
 
 col <- c(
   "#F8766D", # Acinar
@@ -35,8 +35,24 @@ labels <- c(
   "NK cells", "Pre-B cells", "T cells",  "Unknown"
 )
 
+pick_meta_col <- function(md, candidates, required = TRUE) {
+  cols <- colnames(md)
+  hit <- candidates[candidates %in% cols]
+  if (length(hit) > 0) return(hit[[1]])
+  if (!required) return(NULL)
+  stop(sprintf(
+    "None of metadata columns found. Tried: %s. Available examples: %s",
+    paste(candidates, collapse = ", "),
+    paste(head(cols, 20), collapse = ", ")
+  ))
+}
+
 ### functions for expression page
 exp_func <- function(Igene, IcellType) {
+  md <- obj@meta.data
+  cell_col <- pick_meta_col(md, c("all_celltypes", "All_Cell_Type", "all_cell_types", "cell_type"))
+  slide_col <- pick_meta_col(md, c("slide", "Slide"), required = FALSE)
+
   gene_list <- strsplit(Igene, split = ',')[[1]]
   celltype_list <- strsplit(IcellType, split = ',')[[1]]
 
@@ -45,7 +61,7 @@ exp_func <- function(Igene, IcellType) {
     stop("One or more genes not found in dataset.")
   }
 
-  valid_celltypes <- unique(obj$all_celltypes)
+  valid_celltypes <- unique(md[[cell_col]])
   if (!all(celltype_list %in% valid_celltypes)) {
     cat("Invalid cell types:", celltype_list[!celltype_list %in% valid_celltypes], "\n")
     stop("One or more cell types not found.")
@@ -71,16 +87,19 @@ exp_func <- function(Igene, IcellType) {
   celltype_list <- strsplit(IcellType, split = ',')[[1]]
 
   p0 <- DimPlot(obj, reduction = "umap", label = FALSE, label.size = 6, cols = col, 
-                label.color = "black", pt.size = 1, alpha = 0.8, group.by = "all_celltypes") +
+                label.color = "black", pt.size = 1, alpha = 0.8, group.by = cell_col) +
     guides(color = guide_legend(override.aes = list(size = 8), ncol = 1)) +
     scale_color_manual(values = col, labels = labels) +
     theme(plot.title = element_blank(),
           legend.position = "right",
           legend.text = element_text(face = "bold", color = "Black", size = 18, family = "serif"))
-  p0 <- LabelClusters(p0, id = "all_celltypes", fontface = "bold", color = "Black", size = 8, family = "serif")
+  p0 <- LabelClusters(p0, id = cell_col, fontface = "bold", color = "Black", size = 8, family = "serif")
 
-  p1 <- DotPlot(subset(obj, subset = all_celltypes %in% celltype_list),
-                features = gene_list, group.by = "slide") +
+  selected_cells <- rownames(md[md[[cell_col]] %in% celltype_list, , drop = FALSE])
+  obj_cell_subset <- subset(obj, cells = selected_cells)
+
+  p1 <- DotPlot(obj_cell_subset,
+                features = gene_list, group.by = ifelse(is.null(slide_col), cell_col, slide_col)) +
     scale_colour_gradient2(low = "#000000", mid = "orange", high = "red") +
     scale_size(range = c(1, 10)) +
     labs(x = NULL, y = NULL, fill = "avg.exp") +
@@ -98,8 +117,8 @@ exp_func <- function(Igene, IcellType) {
   if (length(gene_list) == 1) {
     print(p0 + p1 + plot_layout(ncol = 2, widths = c(1.4, 1)))  # gives p0 more breathing room
   } else {
-    p2 <- DotPlot(subset(obj, subset = all_celltypes %in% celltype_list),
-                  features = gene_list, group.by = "all_celltypes") +
+    p2 <- DotPlot(obj_cell_subset,
+                  features = gene_list, group.by = cell_col) +
       scale_colour_gradient2(low = "#000000", mid = "orange", high = "red") +
       scale_size(range = c(1, 10)) +
       labs(x = NULL, y = NULL, fill = "avg.exp") +
@@ -243,13 +262,42 @@ image_FOV_cellType <- function(Islide, Ipatient, Ifov, Igene) {
   # print(unique(obj@meta.data$fov))
   # cat("Trying to subset with:\n")
   # print(c(Islide, Ipatient, Ifov))
-  IF.sub.test <- subset_opt(obj, subset = slide == Islide & patient == Ipatient & fov == Ifov)
-  Idents(IF.sub.test) <- factor(IF.sub.test@meta.data$all_celltypes)
+  md <- obj@meta.data
+  slide_col <- pick_meta_col(md, c("slide", "Slide"))
+  patient_col <- pick_meta_col(md, c("patient", "Patient", "donor", "Donor"))
+  fov_col <- pick_meta_col(md, c("fov", "FOV", "fov_id", "FOV_ID"))
+  condition_col <- pick_meta_col(md, c("condition", "Condition", "disease", "group"), required = FALSE)
+  cell_col <- pick_meta_col(md, c("all_celltypes", "All_Cell_Type", "all_cell_types", "cell_type"))
+
+  # Allow Islide to be either the actual slide label or a condition label (e.g. T1D/CTRL).
+  slide_hit <- md[[slide_col]] == Islide
+  if (!is.null(condition_col)) {
+    slide_hit <- slide_hit | (md[[condition_col]] == Islide)
+  }
+
+  md_match <- md[slide_hit & md[[patient_col]] == Ipatient & md[[fov_col]] == Ifov, , drop = FALSE]
+  # Fallback: if slide/condition label mismatches, try patient+fov only.
+  if (nrow(md_match) == 0) {
+    md_match <- md[md[[patient_col]] == Ipatient & md[[fov_col]] == Ifov, , drop = FALSE]
+  }
+  if (nrow(md_match) == 0) {
+    stop(
+      sprintf(
+        "No cells found for slide='%s', patient='%s', fov='%s'. Check that frontend donor/FOV mapping matches the loaded Seurat object metadata.",
+        Islide, Ipatient, as.character(Ifov)
+      )
+    )
+  }
+  resolved_slide <- unique(md_match[[slide_col]])[[1]]
+
+  selected_cells <- rownames(md[md[[slide_col]] == resolved_slide & md[[patient_col]] == Ipatient & md[[fov_col]] == Ifov, , drop = FALSE])
+  IF.sub.test <- subset_opt(obj, cells = selected_cells)
+  Idents(IF.sub.test) <- factor(IF.sub.test@meta.data[[cell_col]])
   seg.xmin <- min(IF.sub.test$CenterX_global_px)
   seg.xmax <- max(IF.sub.test$CenterX_global_px)
   seg.ymin <- min(IF.sub.test$CenterY_global_px)
   seg.ymax <- max(IF.sub.test$CenterY_global_px)
-  cropped.coords <- Crop(IF.sub.test[[unique(IF.sub.test$slide)]], x = c(seg.xmin, seg.xmax), y = c(seg.ymin, seg.ymax), coords = "tissue")
+  cropped.coords <- Crop(IF.sub.test[[unique(IF.sub.test[[slide_col]])]], x = c(seg.xmin, seg.xmax), y = c(seg.ymin, seg.ymax), coords = "tissue")
   IF.sub.test[["zoom1"]] <- cropped.coords
   DefaultBoundary(IF.sub.test[["zoom1"]]) <- "segmentation"
 

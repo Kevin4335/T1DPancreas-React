@@ -90,11 +90,16 @@ T1D_PRECOMPUTED_DIRS = {
 }
 
 
-def donor_subdir_for_precomputed(donor_key: str) -> str:
+def donor_subdir_candidates_for_precomputed(donor_key: str):
+    # Some datasets use donor folders like ICRH098, others use ICRH_098.
+    # Try both to avoid hard-coding one naming convention.
+    candidates = [donor_key]
     m = re.match(r'^([A-Za-z]+)(\d+)$', donor_key)
     if m:
-        return f'{m.group(1)}_{m.group(2)}'
-    return donor_key
+        with_underscore = f'{m.group(1)}_{m.group(2)}'
+        if with_underscore not in candidates:
+            candidates.append(with_underscore)
+    return candidates
 
 
 ROBOTS_TXT ='''
@@ -181,11 +186,22 @@ class Request(BaseHTTPRequestHandler):
                 parts = rest.split('/')
                 if len(parts) != 4:
                     return self.process_404()
-                side, condition, donor_key, fov_s = parts
+                side, condition, donor_key, fov_token = parts
                 if side not in T1D_PRECOMPUTED_DIRS or condition not in ('CTRL', 'T1D'):
                     return self.process_404()
                 if not re.match(r'^[A-Z][A-Za-z0-9]+$', donor_key):
                     return self.process_404()
+                requested_ext = None
+                if fov_token.lower().endswith('.pdf'):
+                    requested_ext = 'pdf'
+                    fov_s = fov_token[:-4]
+                elif fov_token.lower().endswith('.png'):
+                    requested_ext = 'png'
+                    fov_s = fov_token[:-4]
+                else:
+                    # Backward compatible default for old URLs without extension.
+                    requested_ext = 'pdf'
+                    fov_s = fov_token
                 try:
                     fov_num = int(fov_s)
                 except ValueError:
@@ -193,14 +209,17 @@ class Request(BaseHTTPRequestHandler):
                 if fov_num < 0 or str(fov_num) != fov_s:
                     return self.process_404()
                 base_dir = T1D_PRECOMPUTED_DIRS[side]
-                donor_dir = donor_subdir_for_precomputed(donor_key)
-                subdir = os.path.join(base_dir, condition, donor_dir)
                 file_path = None
-                for slide_i in range(1, 16):
-                    fname = f'{condition}_{donor_key}_Slide_{slide_i}_{fov_num}.pdf'
-                    candidate = os.path.join(subdir, fname)
-                    if os.path.isfile(candidate):
-                        file_path = candidate
+                donor_dirs = donor_subdir_candidates_for_precomputed(donor_key)
+                for donor_dir in donor_dirs:
+                    subdir = os.path.join(base_dir, condition, donor_dir)
+                    for slide_i in range(1, 16):
+                        fname = f'{condition}_{donor_key}_Slide_{slide_i}_{fov_num}.pdf'
+                        candidate = os.path.join(subdir, fname)
+                        if os.path.isfile(candidate):
+                            file_path = candidate
+                            break
+                    if file_path is not None:
                         break
             elif local_path.startswith('all_cells/'):
                 base_dir = '/mnt/mountpoint/T1D_Cosmx/figures/spatial_plots/FOV_images_all_cells'
@@ -215,17 +234,28 @@ class Request(BaseHTTPRequestHandler):
                 return self.process_404()
 
             try:
-                with open(file_path, 'rb') as f:
-                    data = f.read()
-                self.send_response(200)
-                if file_path.lower().endswith('.png'):
-                    self.send_header('Content-Type', 'image/png')
-                elif file_path.lower().endswith(('.jpg', '.jpeg')):
-                    self.send_header('Content-Type', 'image/jpeg')
-                elif file_path.lower().endswith('.pdf'):
-                    self.send_header('Content-Type', 'application/pdf')
+                is_precomputed = local_path.startswith('t1d_precomputed/')
+                if is_precomputed and requested_ext == 'png':
+                    data = pdf_to_png_bytes(file_path)
+                    content_type = 'image/png'
                 else:
-                    self.send_header('Content-Type', 'application/octet-stream')
+                    with open(file_path, 'rb') as f:
+                        data = f.read()
+                    if file_path.lower().endswith('.png'):
+                        content_type = 'image/png'
+                    elif file_path.lower().endswith(('.jpg', '.jpeg')):
+                        content_type = 'image/jpeg'
+                    elif file_path.lower().endswith('.pdf'):
+                        content_type = 'application/pdf'
+                    else:
+                        content_type = 'application/octet-stream'
+                self.send_response(200)
+                if content_type == 'application/pdf':
+                    self.send_header('Content-Type', 'application/pdf')
+                    self.send_header('Content-Disposition', f'inline; filename="{os.path.basename(file_path)}"')
+                    self.send_header('X-Content-Type-Options', 'nosniff')
+                else:
+                    self.send_header('Content-Type', content_type)
                 self.send_header('Content-Length', len(data))
                 self.send_header('Cache-Control', 'max-age=86400')
                 origin = self.headers.get("Origin")

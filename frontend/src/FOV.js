@@ -65,6 +65,7 @@ function FOV() {
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [singleGeneOptions, setSingleGeneOptions] = useState([]);
+  const [multiGeneSuggestions, setMultiGeneSuggestions] = useState([]);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [canvasHasContent, setCanvasHasContent] = useState(false);
   const [notifySent, setNotifySent] = useState(false);
@@ -95,6 +96,31 @@ function FOV() {
       }
     };
     increment();
+  };
+
+  const updateMultiGeneSuggestions = (inputValue) => {
+    const parts = inputValue.split(',');
+    const activeToken = (parts[parts.length - 1] || '').trim().toUpperCase();
+    if (!activeToken) {
+      setMultiGeneSuggestions([]);
+      return;
+    }
+    const picked = new Set(parts.map((p) => p.trim().toUpperCase()).filter(Boolean));
+    const suggestions = singleGeneOptions
+      .filter((g) => g && g.toUpperCase().startsWith(activeToken) && !picked.has(g.toUpperCase()))
+      .slice(0, 8);
+    setMultiGeneSuggestions(suggestions);
+  };
+
+  const applyMultiGeneSuggestion = (gene) => {
+    const parts = multiGeneInput.split(',');
+    parts[parts.length - 1] = ` ${gene}`;
+    const next = parts
+      .map((p, idx) => (idx === 0 ? p.trim() : p.trim()))
+      .filter((p) => p.length > 0)
+      .join(', ');
+    setMultiGeneInput(`${next}, `);
+    setMultiGeneSuggestions([]);
   };
 
   const isSubmitActive = () => {
@@ -142,8 +168,8 @@ function FOV() {
 
     if (geneDisplay === 'None') {
       const base = '/spatial_plots/t1d_precomputed';
-      setPdfLeftUrl(`${base}/left/${condition}/${donor}/${fov}`);
-      setPdfRightUrl(`${base}/right/${condition}/${donor}/${fov}`);
+      setPdfLeftUrl(`${base}/left/${condition}/${donor}/${fov}.png`);
+      setPdfRightUrl(`${base}/right/${condition}/${donor}/${fov}.png`);
       setImageUrl('');
       setCanvasHasContent(true);
       setProgress(100);
@@ -458,9 +484,27 @@ function FOV() {
                           size="small"
                           placeholder="e.g. INS, GCG, SST"
                           value={multiGeneInput}
-                          onChange={(e) => setMultiGeneInput(e.target.value)}
+                          onChange={(e) => {
+                            setMultiGeneInput(e.target.value);
+                            updateMultiGeneSuggestions(e.target.value);
+                          }}
                           sx={{ mb: 1.5, '& .MuiInputBase-input': { fontSize: '0.82rem' } }}
                         />
+                        {multiGeneSuggestions.length > 0 && (
+                          <Box sx={{ mb: 1.5, display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+                            {multiGeneSuggestions.map((g) => (
+                              <Button
+                                key={g}
+                                size="small"
+                                variant="outlined"
+                                onClick={() => applyMultiGeneSuggestion(g)}
+                                sx={{ minWidth: 'unset', px: 1, py: 0.2, fontSize: '0.7rem', lineHeight: 1.2 }}
+                              >
+                                {g}
+                              </Button>
+                            ))}
+                          </Box>
+                        )}
                         <TextField
                           fullWidth
                           size="small"
@@ -566,19 +610,44 @@ function FOV() {
                       gap: 1,
                       p: 1,
                       alignContent: 'stretch',
+                      height: '100%',
                     }}
                   >
-                    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: 0, bgcolor: 'background.paper', borderRadius: 1, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}>
-                      <Typography sx={{ fontSize: '0.65rem', px: 1, py: 0.5, bgcolor: 'action.hover', fontWeight: 600, color: 'text.secondary' }}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: 0, height: '100%', bgcolor: 'background.paper', borderRadius: 1, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}>
+                      <Box sx={{ px: 1, py: 0.5, bgcolor: 'action.hover', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+                        <Typography sx={{ fontSize: '0.65rem', fontWeight: 600, color: 'text.secondary' }}>
                         Precomputed · tissue overview
-                      </Typography>
-                      <Box component="iframe" src={pdfLeftUrl} title="FOV tissue overview PDF" sx={{ flex: 1, width: '100%', border: 'none', minHeight: { xs: 320, md: 400 } }} />
+                        </Typography>
+                        <a href={pdfLeftUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.7rem' }}>Open</a>
+                      </Box>
+                      <Box
+                        component="img"
+                        src={pdfLeftUrl}
+                        alt="FOV tissue overview"
+                        sx={{ width: '100%', height: '100%', minHeight: { xs: 320, md: 400 }, objectFit: 'contain', display: 'block', bgcolor: '#fff' }}
+                        onError={() => setErrorMessage('Failed to load precomputed image.')}
+                      />
+                      <Box sx={{ px: 1, py: 0.5, borderTop: '1px solid', borderColor: 'divider', fontSize: '0.72rem' }}>
+                        <a href={pdfLeftUrl.replace(/\.png$/i, '.pdf')} target="_blank" rel="noopener noreferrer">Open PDF</a>
+                      </Box>
                     </Box>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: 0, bgcolor: 'background.paper', borderRadius: 1, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}>
-                      <Typography sx={{ fontSize: '0.65rem', px: 1, py: 0.5, bgcolor: 'action.hover', fontWeight: 600, color: 'text.secondary' }}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: 0, height: '100%', bgcolor: 'background.paper', borderRadius: 1, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}>
+                      <Box sx={{ px: 1, py: 0.5, bgcolor: 'action.hover', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+                        <Typography sx={{ fontSize: '0.65rem', fontWeight: 600, color: 'text.secondary' }}>
                         Precomputed · islet-focused
-                      </Typography>
-                      <Box component="iframe" src={pdfRightUrl} title="FOV islet-focused PDF" sx={{ flex: 1, width: '100%', border: 'none', minHeight: { xs: 320, md: 400 } }} />
+                        </Typography>
+                        <a href={pdfRightUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.7rem' }}>Open</a>
+                      </Box>
+                      <Box
+                        component="img"
+                        src={pdfRightUrl}
+                        alt="FOV islet-focused"
+                        sx={{ width: '100%', height: '100%', minHeight: { xs: 320, md: 400 }, objectFit: 'contain', display: 'block', bgcolor: '#fff' }}
+                        onError={() => setErrorMessage('Failed to load precomputed image.')}
+                      />
+                      <Box sx={{ px: 1, py: 0.5, borderTop: '1px solid', borderColor: 'divider', fontSize: '0.72rem' }}>
+                        <a href={pdfRightUrl.replace(/\.png$/i, '.pdf')} target="_blank" rel="noopener noreferrer">Open PDF</a>
+                      </Box>
                     </Box>
                   </Box>
                 )}
