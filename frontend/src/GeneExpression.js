@@ -23,16 +23,17 @@ const slideUpIn = keyframes`
   100% { opacity: 1; transform: translateY(0); }
 `;
 
-const CELL_TYPES = [
-  'Acinar', 'Alpha', 'Beta', 'Delta', 'Ductal', 'Endothelial', 'Mesenchymal',
-  'B cells', 'Dendritic cells', 'Macrophages', 'Monocytes', 'Granulocytes',
-  'NK cells', 'Pre-B cells', 'T cells', 'Unknown',
-];
-
 function GeneExpression() {
+  const CELL_TYPES = [
+    "Acinar","Alpha","B cell","Beta","Delta+Gamma","Dendritic cell","Ductal","Endothelial",
+    "Fibroblast","Macrophage","Mast cell","Mesenchymal+Endothelial","Monocyte","NK cell",
+    "Pericytes","Polyhormonal","T cell","Unknown"
+  ];
+
   const [geneInput, setGeneInput] = useState('INS');
   const [validGenes, setValidGenes] = useState(['INS']);
   const [geneOptions, setGeneOptions] = useState([]);
+  const [cellTypeOptions, setCellTypeOptions] = useState([]);
   const [suggestions, setSuggestions] = useState([]);
   const [showSugg, setShowSugg] = useState(false);
 
@@ -41,12 +42,7 @@ function GeneExpression() {
   const [errorMessage, setErrorMessage] = useState('');
   const [imageData, setImageData] = useState('');
 
-  const [selectedCellTypes, setSelectedCellTypes] = useState(
-    CELL_TYPES.reduce((acc, ct) => {
-      acc[ct] = false;
-      return acc;
-    }, {})
-  );
+  const [selectedCellTypes, setSelectedCellTypes] = useState({});
 
   const GLB_API_SERVER_URL = 'http://128.84.40.121:5000';
 
@@ -78,6 +74,15 @@ function GeneExpression() {
       .then((res) => res.json())
       .then((data) => setGeneOptions(Array.isArray(data) ? data : []))
       .catch(() => setGeneOptions([]));
+
+    setCellTypeOptions(CELL_TYPES);
+    setSelectedCellTypes((prev) => {
+      const next = {};
+      CELL_TYPES.forEach((ct) => {
+        next[ct] = prev[ct] || false;
+      });
+      return next;
+    });
   }, []);
 
   const simulateProgress = () => {
@@ -360,7 +365,7 @@ function GeneExpression() {
             </Typography>
             <FormGroup>
               <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: '1fr 1fr 1fr 1fr' }, gap: 0.5 }}>
-                {CELL_TYPES.map((cellType) => (
+                {cellTypeOptions.map((cellType) => (
                   <FormControlLabel
                     key={cellType}
                     control={(

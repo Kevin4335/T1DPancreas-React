@@ -13,26 +13,28 @@ obj <- readRDS("/mnt/mountpoint/T1D_Cosmx_new/rds/ECSL7731_annotated.rds")
 col <- c(
   "#F8766D", # Acinar
   "#CD9600", # Alpha
+  "#8B4513", # B cell
   "#7CAE00", # Beta
-  "#00BE67", # Delta
+  "#00BE67", # Delta+Gamma
+  "#2E8B57", # Dendritic cell
   "#00BFC4", # Ductal
   "#00A9FF", # Endothelial
-  "#FF61CC", # Mesenchymal
-  "#8B4513", # B cells
-  "#2E8B57", # Dendritic cells
-  "#4682B4", # Macrophages
-  "#D2691E", # Monocytes
-  "#6A5ACD", # Granulocytes
-  "#FF4500", # NK cells
-  "#556B2F", # Pre-B cells
-  "#FF1493",  # T cells
-  "#FFACBC" # Unknown
+  "#B8860B", # Fibroblast
+  "#4682B4", # Macrophage
+  "#A0522D", # Mast cell
+  "#FF61CC", # Mesenchymal+Endothelial
+  "#D2691E", # Monocyte
+  "#FF4500", # NK cell
+  "#556B2F", # Pericytes
+  "#8A2BE2", # Polyhormonal
+  "#FF1493", # T cell
+  "#FFACBC"  # Unknown
 )
 
 labels <- c(
-  "Acinar", "Alpha", "Beta", "Delta", "Ductal", "Endothelial", "Mesenchymal",
-  "B cells",  "Dendritic cells", "Macrophages", "Monocytes", "Granulocytes", 
-  "NK cells", "Pre-B cells", "T cells",  "Unknown"
+  "Acinar","Alpha","B cell","Beta","Delta+Gamma","Dendritic cell","Ductal","Endothelial",
+  "Fibroblast","Macrophage","Mast cell","Mesenchymal+Endothelial","Monocyte","NK cell",
+  "Pericytes","Polyhormonal","T cell","Unknown"
 )
 
 make_celltype_palette <- function(celltypes) {
@@ -53,6 +55,42 @@ pick_reduction <- function(object, candidates = c("umap", "umap_harmony", "umap_
   if (length(hit) > 0) return(hit[[1]])
   if (length(available) > 0) return(available[[1]])
   stop("No dimensional reduction found in Seurat object.")
+}
+
+normalize_label <- function(x) {
+  tolower(gsub("[^a-z0-9]", "", as.character(x)))
+}
+
+resolve_requested_labels <- function(requested, available) {
+  requested <- trimws(as.character(requested))
+  available <- as.character(available)
+  alias_pairs <- c(
+    "bcell" = "bcell",
+    "bcells" = "bcell",
+    "dendriticcell" = "dendriticcell",
+    "dendriticcells" = "dendriticcell",
+    "macrophage" = "macrophage",
+    "macrophages" = "macrophage",
+    "monocyte" = "monocyte",
+    "monocytes" = "monocyte",
+    "nkcell" = "nkcell",
+    "nkcells" = "nkcell",
+    "tcell" = "tcell",
+    "tcells" = "tcell",
+    "deltagamma" = "deltagamma",
+    "mesenchymalendothelial" = "mesenchymalendothelial"
+  )
+  norm_available <- normalize_label(available)
+  norm_available <- ifelse(norm_available %in% names(alias_pairs), alias_pairs[norm_available], norm_available)
+  names(available) <- norm_available
+  norm_requested <- normalize_label(requested)
+  norm_requested <- ifelse(norm_requested %in% names(alias_pairs), alias_pairs[norm_requested], norm_requested)
+  resolved <- available[norm_requested]
+  unresolved <- requested[is.na(resolved) | resolved == ""]
+  list(
+    resolved = unname(resolved[!(is.na(resolved) | resolved == "")]),
+    unresolved = unresolved
+  )
 }
 
 pick_meta_col <- function(md, candidates, required = TRUE) {
@@ -81,13 +119,15 @@ exp_func <- function(Igene, IcellType) {
     stop("One or more genes not found in dataset.")
   }
 
-  valid_celltypes <- unique(md[[cell_col]])
+  valid_celltypes <- unique(as.character(md[[cell_col]]))
   palette_map <- make_celltype_palette(valid_celltypes)
   reduction_name <- pick_reduction(obj)
-  if (!all(celltype_list %in% valid_celltypes)) {
-    cat("Invalid cell types:", celltype_list[!celltype_list %in% valid_celltypes], "\n")
+  resolved_types <- resolve_requested_labels(celltype_list, valid_celltypes)
+  if (length(resolved_types$unresolved) > 0) {
+    cat("Invalid cell types:", resolved_types$unresolved, "\n")
     stop("One or more cell types not found.")
   }
+  celltype_list <- unique(resolved_types$resolved)
   ## Igene should be string containing at least one gene, such as "COL1A1","CD68"
   ## IcellType should be string containing at least one cell type, such as "1:Macro","2:Fibro"
   if (is.null(Igene)) {
@@ -100,7 +140,7 @@ exp_func <- function(Igene, IcellType) {
 
   # Create PNG output file
   outfile <- tempfile(fileext = ".png")
-  png(outfile, width = 1200, height = 800)
+  png(outfile, width = 1600, height = 800)
   on.exit({
     try(dev.off(), silent = TRUE)
   }, add = TRUE)
@@ -108,32 +148,43 @@ exp_func <- function(Igene, IcellType) {
   gene_list <- strsplit(Igene, split = ',')[[1]]
   celltype_list <- strsplit(IcellType, split = ',')[[1]]
 
-  # Downsample UMAP overview to prevent OOM kills on large objects.
+  # Safe-mode caps to avoid OOM during gene expression rendering.
   all_cells <- Cells(obj)
-  max_umap_cells <- 5000
-  if (length(all_cells) > max_umap_cells) {
+  umap_cap <- 20000
+  if (length(all_cells) > umap_cap) {
     set.seed(1)
-    umap_cells <- sample(all_cells, max_umap_cells)
+    umap_cells <- sample(all_cells, umap_cap)
+    cat(sprintf("UMAP cell cap applied: %d sampled from %d\n", umap_cap, length(all_cells)))
   } else {
     umap_cells <- all_cells
+    cat(sprintf("UMAP cells used: %d\n", length(umap_cells)))
   }
   obj_umap <- subset(obj, cells = umap_cells)
 
   p0 <- DimPlot(obj_umap, reduction = reduction_name, label = FALSE, label.size = 6, cols = palette_map,
-                label.color = "black", pt.size = 0.7, alpha = 0.8, group.by = cell_col, raster = TRUE) +
+                label.color = "black", pt.size = 1.4, alpha = 0.8, group.by = cell_col, raster = TRUE) +
     guides(color = guide_legend(override.aes = list(size = 8), ncol = 1)) +
     theme(plot.title = element_blank(),
           legend.position = "right",
           legend.text = element_text(face = "bold", color = "Black", size = 18, family = "serif"))
-  p0 <- LabelClusters(p0, id = cell_col, fontface = "bold", color = "Black", size = 8, family = "serif")
+  p0 <- LabelClusters(p0, id = cell_col, fontface = "bold", color = "Black", size = 5, family = "serif")
 
   selected_cells <- rownames(md[md[[cell_col]] %in% celltype_list, , drop = FALSE])
+  if (length(selected_cells) == 0) stop("No cells matched selected cell types after normalization.")
+  dotplot_cap <- 30000
+  if (length(selected_cells) > dotplot_cap) {
+    set.seed(1)
+    selected_cells <- sample(selected_cells, dotplot_cap)
+    cat(sprintf("DotPlot cell cap applied: %d sampled\n", dotplot_cap))
+  } else {
+    cat(sprintf("DotPlot cells used: %d\n", length(selected_cells)))
+  }
   obj_cell_subset <- subset(obj, cells = selected_cells)
 
   p1 <- DotPlot(obj_cell_subset,
                 features = gene_list, group.by = ifelse(is.null(slide_col), cell_col, slide_col)) +
     scale_colour_gradient2(low = "#000000", mid = "orange", high = "red") +
-    scale_size(range = c(1, 10)) +
+    scale_size(range = c(2, 12)) +
     labs(x = NULL, y = NULL, fill = "avg.exp") +
     scale_y_discrete(breaks = c("Control", "AB_plus_LN_minus", "AB_plus_LN_plus", "T1D"),
                      labels = c("Control", "AB+LN-", "AB+LN+", "T1D")) +
@@ -147,12 +198,12 @@ exp_func <- function(Igene, IcellType) {
           axis.text.y = element_text(face = "bold", color = "Black", size = 18, family = "serif", angle = 90, hjust = 0.5))
 
   if (length(gene_list) == 1) {
-    print(p0 + p1 + plot_layout(ncol = 2, widths = c(1.4, 1)))  # gives p0 more breathing room
+    print(p0 + p1 + plot_layout(ncol = 2, widths = c(1.4, 1)))
   } else {
     p2 <- DotPlot(obj_cell_subset,
                   features = gene_list, group.by = cell_col) +
       scale_colour_gradient2(low = "#000000", mid = "orange", high = "red") +
-      scale_size(range = c(1, 10)) +
+      scale_size(range = c(2, 12)) +
       labs(x = NULL, y = NULL, fill = "avg.exp") +
       coord_flip() +
       theme(axis.text.x = element_text(color = "Black", size = 8, hjust = 1, vjust = 1, angle = 30),
@@ -480,6 +531,18 @@ app <- list(
             'Access-Control-Allow-Origin' = cors_origin
           ),
           body = toJSON(genes)
+        ))
+      }
+
+      if (path == "/cell_types") {
+        cell_types <- labels
+        return(list(
+          status = 200L,
+          headers = list(
+            'Content-Type' = 'application/json',
+            'Access-Control-Allow-Origin' = cors_origin
+          ),
+          body = toJSON(cell_types)
         ))
       }
 
