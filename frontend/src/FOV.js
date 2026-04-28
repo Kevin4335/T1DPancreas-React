@@ -16,6 +16,10 @@ import {
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import NavBar from './components/NavBar';
 import Footer from './components/Footer';
+import FOV_STRUCTURE from './data/fov_structure.json';
+
+const GLB_API_SERVER_URL = 'http://128.84.40.121:5000';
+const GLB_SITE_ORIGIN = 'http://128.84.40.121';
 
 const slideUpIn = keyframes`
   0% { opacity: 0; transform: translateY(28px); }
@@ -23,10 +27,14 @@ const slideUpIn = keyframes`
 `;
 
 const CONDITION_LABELS = {
-  'Control': 'Control',
-  'AB+LN-': 'AB⁺LN⁻',
-  'AB+LN+': 'AB⁺LN⁺',
-  'T1D': 'T1D',
+  CTRL: 'Control',
+  T1D: 'T1D',
+};
+
+/** Maps UI condition values to Seurat slide labels expected by the R server (p1). */
+const CONDITION_TO_R_SLIDE = {
+  CTRL: 'Control',
+  T1D: 'T1D',
 };
 
 function FOV() {
@@ -51,6 +59,8 @@ function FOV() {
   const [multiGeneInput, setMultiGeneInput] = useState('');
   const [email, setEmail] = useState('');
   const [imageUrl, setImageUrl] = useState('');
+  const [pdfLeftUrl, setPdfLeftUrl] = useState('');
+  const [pdfRightUrl, setPdfRightUrl] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -59,34 +69,9 @@ function FOV() {
   const [canvasHasContent, setCanvasHasContent] = useState(false);
   const [notifySent, setNotifySent] = useState(false);
 
-  const conditionOptions = ['Control', 'AB+LN-', 'AB+LN+', 'T1D'];
-  const donorOptionsByCondition = {
-    'Control': ['HPAP-122', 'HPAP-129', 'HPAP-131', 'HPAP-140'],
-    'AB+LN-': ['HPAP-024', 'HPAP-045', 'HPAP-072', 'HPAP-092', 'HPAP-148'],
-    'AB+LN+': ['HPAP-008', 'HPAP-016', 'HPAP-029', 'HPAP-038', 'HPAP-107'],
-    'T1D': ['HPAP-078', 'HPAP-084', 'HPAP-089', 'HPAP-123', 'HPAP-149'],
-  };
-  const fovOptionsByDonor = {
-    'HPAP-008': [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,94,95],
-    'HPAP-016': [76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93],
-    'HPAP-024': [29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49],
-    'HPAP-029': [49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,100],
-    'HPAP-038': [24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48],
-    'HPAP-045': [100,101,102,103],
-    'HPAP-072': [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28],
-    'HPAP-078': [76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97],
-    'HPAP-084': [34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50],
-    'HPAP-089': [26,27,28,29,30,31,32,33,98,99,100],
-    'HPAP-092': [50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74],
-    'HPAP-107': [67,68,69,70,71,72,73,74,75,96,97,98,99],
-    'HPAP-122': [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15],
-    'HPAP-123': [51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75],
-    'HPAP-129': [66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104,105],
-    'HPAP-131': [16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40],
-    'HPAP-140': [41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65],
-    'HPAP-148': [75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99],
-    'HPAP-149': [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25],
-  };
+  const conditionOptions = FOV_STRUCTURE.conditionOptions;
+  const donorOptionsByCondition = FOV_STRUCTURE.donorOptionsByCondition;
+  const fovOptionsByDonor = FOV_STRUCTURE.fovOptionsByDonor;
   const geneDisplayOptions = [
     { value: 'None', label: 'None' },
     { value: 'Single Gene', label: 'Single gene' },
@@ -94,7 +79,7 @@ function FOV() {
   ];
 
   useEffect(() => {
-    fetch('http://128.84.40.121:5000/genes')
+    fetch(`${GLB_API_SERVER_URL}/genes`)
       .then((res) => res.json())
       .then((data) => setSingleGeneOptions(Array.isArray(data) ? data : []))
       .catch(() => setSingleGeneOptions([]));
@@ -156,8 +141,10 @@ function FOV() {
     }
 
     if (geneDisplay === 'None') {
-      const link = `/spatial_plots/all_cells/${donor}/${donor}_${fov}_Image.png`;
-      setImageUrl(link);
+      const base = '/spatial_plots/t1d_precomputed';
+      setPdfLeftUrl(`${base}/left/${condition}/${donor}/${fov}`);
+      setPdfRightUrl(`${base}/right/${condition}/${donor}/${fov}`);
+      setImageUrl('');
       setCanvasHasContent(true);
       setProgress(100);
       setIsLoading(false);
@@ -165,26 +152,64 @@ function FOV() {
     }
 
     if (geneDisplay === 'Single Gene') {
-      const folderMap = { 'Control': 'CTRL', 'AB+LN-': 'ABposLNminus', 'AB+LN+': 'ABposLNpos', 'T1D': 'T1D' };
-      const filenameMap = { 'Control': 'Control', 'AB+LN-': 'AB_plus_LN_minus', 'AB+LN+': 'AB_plus_LN_plus', 'T1D': 'T1D' };
-      let gene = replaceAll(singleGene, '/', '.');
-      gene = replaceAll(gene, ' ', '@');
-      const link = `/spatial_plots/single_gene/${folderMap[condition]}/${donor}/${filenameMap[condition]}_${donor}_${fov}_${gene}.png`;
-      setImageUrl(link);
-      setCanvasHasContent(true);
-      setProgress(100);
-      setIsLoading(false);
+      setPdfLeftUrl('');
+      setPdfRightUrl('');
+      setImageUrl('');
+      try {
+        let gene = replaceAll(singleGene.trim(), '/', '.');
+        gene = replaceAll(gene, ' ', '@');
+        const requestData = {
+          f: 1,
+          p1: CONDITION_TO_R_SLIDE[condition],
+          p2: donor,
+          p3: Number(fov),
+          p4: gene,
+        };
+        const jsonData = JSON.stringify(requestData);
+        const hexData = stringToHex(jsonData);
+        const url = `${GLB_API_SERVER_URL}/fov/${hexData}`;
+        console.log('JSON Data:', jsonData);
+        console.log('Hex Data:', hexData);
+        console.log('Submitting single-gene fov request:', requestData);
+        console.log('Request URL:', url);
+        const response = await fetch(url, { method: 'GET' });
+        if (response.ok) {
+          const data = await response.json();
+          if (data.img) {
+            const imgDataUrl = `data:image/png;base64,${data.img}`;
+            setImageUrl(imgDataUrl);
+            setCanvasHasContent(true);
+            setProgress(100);
+          } else setErrorMessage('No image data received from server.');
+        } else {
+          const err = await response.json().catch(() => ({}));
+          setErrorMessage(err?.error || err?.msg || `HTTP ${response.status}`);
+        }
+      } catch (err) {
+        setErrorMessage(err?.message || 'Network error');
+      } finally {
+        setIsLoading(false);
+        setTimeout(() => setProgress(0), 250);
+      }
       return;
     }
 
     if (geneDisplay === 'Multi Gene (Max 3)') {
       try {
+        setPdfLeftUrl('');
+        setPdfRightUrl('');
+        setImageUrl('');
         const validGenes = multiGeneInput.split(',').map((g) => g.trim()).filter(Boolean);
-        const filenameMap = { 'Control': 'Control', 'AB+LN-': 'AB_plus_LN_minus', 'AB+LN+': 'AB_plus_LN_plus', 'T1D': 'T1D' };
-        const requestData = { f: 1, p1: filenameMap[condition], p2: donor, p3: fov, p4: validGenes.join(',') };
+        const requestData = {
+          f: 1,
+          p1: CONDITION_TO_R_SLIDE[condition],
+          p2: donor,
+          p3: Number(fov),
+          p4: validGenes.join(','),
+        };
         const jsonData = JSON.stringify(requestData);
         const hexData = stringToHex(jsonData);
-        const url = `http://128.84.40.121:5000/fov/${hexData}`;
+        const url = `${GLB_API_SERVER_URL}/fov/${hexData}`;
         console.log('JSON Data:', jsonData);
         console.log('Hex Data:', hexData);
         console.log('Submitting fov request:', requestData);
@@ -197,7 +222,7 @@ function FOV() {
             setImageUrl(imgDataUrl);
             setCanvasHasContent(true);
             setProgress(100);
-            await fetch('http://128.84.40.121/api/email_simple', {
+            await fetch(`${GLB_SITE_ORIGIN}/api/email_simple`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ email, image_data: imgDataUrl, donor, condition }),
@@ -217,7 +242,7 @@ function FOV() {
   };
 
   const handleApplyClick = () => {
-    if (canvasHasContent && (imageUrl || isLoading)) {
+    if (canvasHasContent && (imageUrl || pdfLeftUrl || isLoading)) {
       setConfirmOpen(true);
     } else {
       doApply();
@@ -531,6 +556,33 @@ function FOV() {
                   </Box>
                 )}
 
+                {!isLoading && pdfLeftUrl && pdfRightUrl && (
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      inset: 0,
+                      display: 'grid',
+                      gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+                      gap: 1,
+                      p: 1,
+                      alignContent: 'stretch',
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: 0, bgcolor: 'background.paper', borderRadius: 1, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}>
+                      <Typography sx={{ fontSize: '0.65rem', px: 1, py: 0.5, bgcolor: 'action.hover', fontWeight: 600, color: 'text.secondary' }}>
+                        Precomputed · tissue overview
+                      </Typography>
+                      <Box component="iframe" src={pdfLeftUrl} title="FOV tissue overview PDF" sx={{ flex: 1, width: '100%', border: 'none', minHeight: { xs: 320, md: 400 } }} />
+                    </Box>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: 0, bgcolor: 'background.paper', borderRadius: 1, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}>
+                      <Typography sx={{ fontSize: '0.65rem', px: 1, py: 0.5, bgcolor: 'action.hover', fontWeight: 600, color: 'text.secondary' }}>
+                        Precomputed · islet-focused
+                      </Typography>
+                      <Box component="iframe" src={pdfRightUrl} title="FOV islet-focused PDF" sx={{ flex: 1, width: '100%', border: 'none', minHeight: { xs: 320, md: 400 } }} />
+                    </Box>
+                  </Box>
+                )}
+
                 {!isLoading && imageUrl && (
                   <Box sx={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
                     <TransformWrapper
@@ -557,7 +609,7 @@ function FOV() {
                   </Box>
                 )}
 
-                {!isLoading && !imageUrl && !errorMessage && (
+                {!isLoading && !imageUrl && !(pdfLeftUrl && pdfRightUrl) && !errorMessage && (
                   <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.75, p: 4, textAlign: 'center' }}>
                     <Box sx={{ width: 52, height: 52, border: '2px dashed', borderColor: 'text.disabled', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem', color: 'text.disabled' }}>⊙</Box>
                     <Typography sx={{ fontSize: '0.95rem', fontWeight: 700, color: 'text.primary' }}>No FOV loaded</Typography>

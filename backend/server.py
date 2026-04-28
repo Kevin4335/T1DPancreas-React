@@ -5,16 +5,15 @@ import json
 from myBasics import binToBase64
 from mySecrets import hexToStr
 import os
+import re
 from queue import Queue
 from R_http import fov_multi, gene_expression
 from utils import convert_input, R_email_pipe, CELL_TYPES, GENES_FORMATTED_TO_ORIGIN, binary_to_str, pdf_to_png_bytes
 from hashlib import sha256
 from random import randint
-from _thread import start_new_thread
 from datetime import datetime, timezone
 from ai import process_ai_chat
 from my_email import send_email_with_attachment
-import os
 import traceback
 
 ALLOWED_ORIGINS = [
@@ -84,6 +83,18 @@ if ENV_MODE == "production":
 
 
 cached_files = {}
+
+T1D_PRECOMPUTED_DIRS = {
+    'left': '/mnt/mountpoint/T1D_Cosmx_new/FOV_figs',
+    'right': '/mnt/mountpoint/T1D_Cosmx_new/FOV_islet_figs',
+}
+
+
+def donor_subdir_for_precomputed(donor_key: str) -> str:
+    m = re.match(r'^([A-Za-z]+)(\d+)$', donor_key)
+    if m:
+        return f'{m.group(1)}_{m.group(2)}'
+    return donor_key
 
 
 ROBOTS_TXT ='''
@@ -165,7 +176,33 @@ class Request(BaseHTTPRequestHandler):
                 return self.process_404(attack=True)
 
             # Determine the base directory
-            if local_path.startswith('all_cells/'):
+            if local_path.startswith('t1d_precomputed/'):
+                rest = local_path[len('t1d_precomputed/'):]
+                parts = rest.split('/')
+                if len(parts) != 4:
+                    return self.process_404()
+                side, condition, donor_key, fov_s = parts
+                if side not in T1D_PRECOMPUTED_DIRS or condition not in ('CTRL', 'T1D'):
+                    return self.process_404()
+                if not re.match(r'^[A-Z][A-Za-z0-9]+$', donor_key):
+                    return self.process_404()
+                try:
+                    fov_num = int(fov_s)
+                except ValueError:
+                    return self.process_404()
+                if fov_num < 0 or str(fov_num) != fov_s:
+                    return self.process_404()
+                base_dir = T1D_PRECOMPUTED_DIRS[side]
+                donor_dir = donor_subdir_for_precomputed(donor_key)
+                subdir = os.path.join(base_dir, condition, donor_dir)
+                file_path = None
+                for slide_i in range(1, 16):
+                    fname = f'{condition}_{donor_key}_Slide_{slide_i}_{fov_num}.pdf'
+                    candidate = os.path.join(subdir, fname)
+                    if os.path.isfile(candidate):
+                        file_path = candidate
+                        break
+            elif local_path.startswith('all_cells/'):
                 base_dir = '/mnt/mountpoint/T1D_Cosmx/figures/spatial_plots/FOV_images_all_cells'
                 file_path = os.path.join(base_dir, local_path[len('all_cells/'):])
             elif local_path.startswith('single_gene/'):
@@ -174,7 +211,7 @@ class Request(BaseHTTPRequestHandler):
             else:
                 return self.process_404()
 
-            if not os.path.isfile(file_path):
+            if file_path is None or not os.path.isfile(file_path):
                 return self.process_404()
 
             try:
@@ -185,6 +222,8 @@ class Request(BaseHTTPRequestHandler):
                     self.send_header('Content-Type', 'image/png')
                 elif file_path.lower().endswith(('.jpg', '.jpeg')):
                     self.send_header('Content-Type', 'image/jpeg')
+                elif file_path.lower().endswith('.pdf'):
+                    self.send_header('Content-Type', 'application/pdf')
                 else:
                     self.send_header('Content-Type', 'application/octet-stream')
                 self.send_header('Content-Length', len(data))

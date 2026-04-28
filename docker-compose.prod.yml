@@ -11,8 +11,13 @@ services:
       - IS_SERVER=true
       - ENV_MODE=production
     volumes:
-      # For "None" mode images
+      # For "None" mode (legacy PNGs, if still used)
       - /mnt/mountpoint/T1D_Cosmx/figures/spatial_plots/FOV_images_all_cells:/mnt/mountpoint/T1D_Cosmx/figures/spatial_plots/FOV_images_all_cells:ro
-      
-      # For "Single Gene" mode images
+
+      # For "Single Gene" mode (legacy precomputed PNGs, if still used)
       - /mnt/mountpoint/T1D_Cosmx/figures/spatial_plots/all_fovs_single_genes:/mnt/mountpoint/T1D_Cosmx/figures/spatial_plots/all_fovs_single_genes:ro
+
+      # For "None" mode dual PDFs (t1d_precomputed/left → FOV_figs)
+      - /mnt/mountpoint/T1D_Cosmx_new/FOV_figs:/mnt/mountpoint/T1D_Cosmx_new/FOV_figs:ro
+      # For "None" mode dual PDFs (t1d_precomputed/right → FOV_islet_figs)
+      - /mnt/mountpoint/T1D_Cosmx_new/FOV_islet_figs:/mnt/mountpoint/T1D_Cosmx_new/FOV_islet_figs:ro
