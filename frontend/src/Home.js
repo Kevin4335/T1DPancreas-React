@@ -21,10 +21,10 @@ const slideUpIn = keyframes`
 `;
 
 const STATS = [
-  { label: 'Total Subjects', hint: '4 disease stages · 5 each', value: '20' },
+  { label: 'Total Subjects', hint: '2 groups · 6 each', value: '12' },
   { label: 'Cells Profiled', hint: 'single-cell resolution', value: '1.14M' },
-  { label: 'Fields of View', hint: 'spatial FOVs', value: '408' },
-  { label: 'Genes Measured', hint: 'per cell panel', value: '1,000' },
+  { label: 'Fields of View', hint: 'mapped spatial FOV entries', value: '318' },
+  { label: 'Genes Measured', hint: 'available in current RDS', value: '6,175' },
 ];
 
 const STAGES = [
@@ -32,35 +32,17 @@ const STAGES = [
     id: 'ctrl',
     index: 'STAGE 01',
     title: 'Control',
-    desc: 'Healthy donors with no autoimmunity or pancreatic pathology.',
-    subjects: '5 subjects',
+    desc: 'Reference donors with non-diabetic pancreatic tissue profiles.',
+    subjects: '6 subjects',
     borderColor: '#059669',
     pillBg: '#ecfdf5',
   },
   {
-    id: 'ab1',
-    index: 'STAGE 02',
-    title: 'AB⁺LN⁻',
-    desc: 'Autoantibody-positive without lymphocyte infiltration in islets.',
-    subjects: '5 subjects',
-    borderColor: '#d97706',
-    pillBg: '#fffbeb',
-  },
-  {
-    id: 'ab2',
-    index: 'STAGE 03',
-    title: 'AB⁺LN⁺',
-    desc: 'Autoantibody-positive with active lymphocyte infiltration (insulitis).',
-    subjects: '5 subjects',
-    borderColor: '#ea580c',
-    pillBg: '#fff7ed',
-  },
-  {
     id: 't1d',
-    index: 'STAGE 04',
+    index: 'STAGE 02',
     title: 'Clinical T1D',
     desc: 'Established clinical type 1 diabetes diagnosis.',
-    subjects: '5 subjects',
+    subjects: '6 subjects',
     borderColor: '#dc2626',
     pillBg: '#fef2f2',
   },
@@ -70,7 +52,7 @@ const FEATURES = [
   {
     icon: '🧬',
     title: 'Spatial Gene Expression',
-    desc: 'Visualize 1,000-gene panels with full spatial context across 408 FOVs from human pancreatic tissue sections.',
+    desc: 'Visualize 6,175 measured genes with spatial context across 318 mapped FOV entries from pancreatic tissue sections.',
   },
   {
     icon: '🤖',
@@ -80,7 +62,7 @@ const FEATURES = [
   {
     icon: '🔬',
     title: 'Single-Cell Resolution',
-    desc: 'Over 1.1M individually profiled cells with cell type annotations and spatial coordinates preserved.',
+    desc: 'Hundreds of thousands of individually profiled cells with curated cell type annotations and spatial coordinates preserved.',
   },
 ];
 
@@ -168,7 +150,7 @@ function Home() {
               animationDelay: '100ms',
             }}
           >
-            An AI-powered platform for analyzing CosMX (NanoString) spatial transcriptomics data from human pancreatic tissues. Single-cell spatial datasets from 20 donors representing key stages of type 1 diabetes progression.
+            An AI-powered platform for analyzing CosMX (NanoString) spatial transcriptomics data from human pancreatic tissues. Current release includes CTRL and T1D cohorts across 12 donors with 6,175 measured genes.
           </Typography>
           <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
             <Button
@@ -340,7 +322,7 @@ function Home() {
         <Box
           sx={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
+            gridTemplateColumns: 'repeat(2, 1fr)',
             gap: 1.75,
             alignItems: 'stretch',
           }}
@@ -539,7 +521,7 @@ function Home() {
               lineHeight: 1.5,
             }}
           >
-            T1D Spatial Atlas · CosMX (NanoString) · Human Pancreatic Tissue · 20 Donors · 1,139,248 Cells · 408 FOVs · 1,000 Genes
+            T1D Spatial Atlas · CosMX (NanoString) · Human Pancreatic Tissue · 12 Donors · 1,139,248 Cells · 318 FOV Entries · 6,175 Genes
           </Typography>
         </Box>
       </Box>

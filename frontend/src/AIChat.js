@@ -57,6 +57,7 @@ function AIChat() {
 
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxImage, setLightboxImage] = useState('');
+  const [brokenImages, setBrokenImages] = useState({});
 
   const scrollRef = useRef(null);
 
@@ -112,7 +113,14 @@ function AIChat() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
       const data = await res.json();
-      const processed = (data.messages || []).map((m) => ({ type: m.type, content: m.content }));
+      const processed = (data.messages || [])
+        .filter((m) => m && typeof m.type === 'string')
+        .map((m) => ({ type: m.type, content: m.content }))
+        .filter((m) => {
+          if (m.type === 'image') return typeof m.content === 'string' && m.content.trim() !== '';
+          if (m.type === 'text' || m.type === 'error') return typeof m.content === 'string' && m.content.trim() !== '';
+          return false;
+        });
 
       const finalMessages = [...messages, userMsg, ...processed];
       setMessages(finalMessages);
@@ -339,12 +347,21 @@ function AIChat() {
                 <Box sx={{ maxWidth: '85%' }}>
                   {isImage ? (
                     <Box sx={{ width: '100%', maxWidth: '100%' }}>
-                      <img
-                        src={msg.content}
-                        alt="response"
-                        style={{ maxWidth: '100%', maxHeight: 420, cursor: 'pointer', display: 'block', borderRadius: '8px' }}
-                        onClick={() => handleImageClick(msg.content)}
-                      />
+                      {brokenImages[idx] ? (
+                        <Typography sx={{ fontSize: '0.82rem', color: '#b45309' }}>
+                          Image failed to load. Try regenerating the request.
+                        </Typography>
+                      ) : (
+                        <>
+                          <img
+                            src={msg.content}
+                            alt="response"
+                            style={{ maxWidth: '100%', maxHeight: 420, cursor: 'pointer', display: 'block', borderRadius: '8px' }}
+                            onClick={() => handleImageClick(msg.content)}
+                            onError={() => setBrokenImages((prev) => ({ ...prev, [idx]: true }))}
+                          />
+                        </>
+                      )}
                     </Box>
                   ) : (
                     <Typography sx={{ fontSize: '0.85rem', lineHeight: 1.6, color: '#000000', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
