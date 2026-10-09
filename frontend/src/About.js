@@ -193,6 +193,35 @@ function About() {
           </Grid>
         </Paper>
 
+        {/* Kai Liu */}
+        <Paper elevation={2} sx={{ p: 3, mb: 4 , borderRadius: '1rem'}}>
+          <Grid container spacing={3} alignItems="center">
+            <Grid item xs={12} sm={3}>
+              <Box sx={{ textAlign: 'center' }}>
+                <Avatar 
+                  //src={`${process.env.PUBLIC_URL}/imgs/kai.jpeg`}
+                  alt="Kai Liu"
+                  sx={{ width: 150, height: 150, mx: 'auto' }}
+                />
+              </Box>
+            </Grid>
+            <Grid item xs={12} sm={9}>
+              <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1 }}>
+                Kai Liu
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 1, color: theme.palette.text.secondary }}>
+                Designer and front-end developer
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 2, color: theme.palette.text.secondary }}>
+                Email: <a href="mailto:kailiua@umich.edu" style={{ color: theme.palette.primary.main }}>kailiua@umich.edu</a>
+              </Typography>
+              <Typography variant="body1" sx={{ lineHeight: 1.7 }}>
+                Kai Liu is a designer and front-end developer. He is responsible for interface design and front-end implementation for the platform.
+              </Typography>
+            </Grid>
+          </Grid>
+        </Paper>
+
       </Container>
       <Footer />
     </div>

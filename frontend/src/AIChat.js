@@ -12,6 +12,8 @@ import {
 import ArrowOutwardOutlinedIcon from '@mui/icons-material/ArrowOutwardOutlined';
 import CloseIcon from '@mui/icons-material/Close';
 import FavoriteIcon from '@mui/icons-material/Favorite';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import NavBar from './components/NavBar';
 import Footer from './components/Footer';
 
@@ -26,6 +28,77 @@ const AI_CHAT_URL = `${BASEURL}/chat`;
 
 const LS_OPENAI = 'openai-history';
 const LS_DISPLAY = 'display-history';
+
+const markdownSx = {
+  fontSize: '0.85rem',
+  lineHeight: 1.6,
+  color: '#000000',
+  wordBreak: 'break-word',
+  '& > *:first-child': { marginTop: 0 },
+  '& > *:last-child': { marginBottom: 0 },
+  '& p': { margin: '0 0 0.65em' },
+  '& h1, & h2, & h3, & h4': {
+    fontSize: '0.95rem',
+    fontWeight: 650,
+    lineHeight: 1.35,
+    margin: '0.75em 0 0.35em',
+  },
+  '& ul, & ol': { margin: '0.25em 0 0.65em', paddingLeft: '1.35em' },
+  '& li': { marginBottom: '0.2em' },
+  '& li > p': { margin: 0 },
+  '& a': { color: '#2563eb' },
+  '& code': {
+    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+    fontSize: '0.8em',
+    backgroundColor: '#f3f4f6',
+    borderRadius: '4px',
+    padding: '0.1em 0.35em',
+  },
+  '& pre': {
+    backgroundColor: '#f3f4f6',
+    borderRadius: '8px',
+    padding: '0.75em 1em',
+    overflowX: 'auto',
+    margin: '0.4em 0 0.65em',
+  },
+  '& pre code': { backgroundColor: 'transparent', padding: 0 },
+  '& blockquote': {
+    margin: '0.4em 0 0.65em',
+    paddingLeft: '0.8em',
+    borderLeft: '3px solid #d1d5db',
+    color: '#374151',
+  },
+  '& table': {
+    borderCollapse: 'collapse',
+    width: '100%',
+    margin: '0.4em 0 0.65em',
+    fontSize: '0.8rem',
+  },
+  '& th, & td': {
+    border: '1px solid #e5e7eb',
+    padding: '4px 8px',
+    textAlign: 'left',
+    verticalAlign: 'top',
+  },
+  '& hr': { border: 0, borderTop: '1px solid #e5e7eb', margin: '0.75em 0' },
+};
+
+function AssistantMarkdown({ content }) {
+  return (
+    <Box sx={markdownSx}>
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          a: ({ href, children }) => (
+            <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>
+          ),
+        }}
+      >
+        {typeof content === 'string' ? content : ''}
+      </ReactMarkdown>
+    </Box>
+  );
+}
 
 const EXAMPLE_PROMPTS = [
   'Show me the gene expression for AATK in Beta cells.',
@@ -364,9 +437,7 @@ function AIChat() {
                       )}
                     </Box>
                   ) : (
-                    <Typography sx={{ fontSize: '0.85rem', lineHeight: 1.6, color: '#000000', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-                      {msg.content}
-                    </Typography>
+                    <AssistantMarkdown content={msg.content} />
                   )}
                 </Box>
               </Box>
